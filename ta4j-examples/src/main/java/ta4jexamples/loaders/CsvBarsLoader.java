@@ -26,11 +26,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +48,40 @@ import com.opencsv.CSVReader;
 public class CsvBarsLoader {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter LONG_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm:ss a"); // 31/01/2018 09:47:00 PM
+
+    /**
+     * @return a time series from Apple Inc. bars.
+     */
+    public static TimeSeries loadStandardAndPoor500ESFSeries() {
+
+        InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_20183101.csv");
+
+        List<Bar> bars = new ArrayList<>();
+
+        CSVReader csvReader = new CSVReader(new InputStreamReader(stream, Charset.forName("UTF-8")), ';', '"', 0);
+        try {
+            String[] line;
+            while ((line = csvReader.readNext()) != null) {
+                ZonedDateTime date = LocalDateTime.parse(line[0], LONG_DATE_FORMAT).atZone(ZoneId.systemDefault());
+
+                double open = Double.parseDouble(line[1]);
+                double close = Double.parseDouble(line[2]);
+                double high = Double.parseDouble(line[3]);
+                double low = Double.parseDouble(line[4]);
+                double volume = Double.parseDouble(line[5]);
+
+                bars.add(new BaseBar(date, open, high, low, close, volume));
+            }
+
+        } catch (IOException ioe) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", ioe);
+        } catch (NumberFormatException nfe) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Error while parsing value", nfe);
+        }
+
+        return new BaseTimeSeries("es=f_bars", bars);
+    }
 
     /**
      * @return a time series from Apple Inc. bars.
@@ -81,7 +115,7 @@ public class CsvBarsLoader {
     }
 
     public static void main(String[] args) {
-        TimeSeries series = CsvBarsLoader.loadAppleIncSeries();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
 
         System.out.println("Series: " + series.getName() + " (" + series.getSeriesPeriodDescription() + ")");
         System.out.println("Number of bars: " + series.getBarCount());

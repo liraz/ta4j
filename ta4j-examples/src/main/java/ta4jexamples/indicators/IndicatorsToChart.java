@@ -28,6 +28,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.time.Day;
+import org.jfree.data.time.Minute;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
@@ -43,6 +44,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import ta4jexamples.loaders.CsvBarsLoader;
 
+import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -62,7 +64,8 @@ public class IndicatorsToChart {
         org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries(name);
         for (int i = 0; i < barseries.getBarCount(); i++) {
             Bar bar = barseries.getBar(i);
-            chartTimeSeries.add(new Day(Date.from(bar.getEndTime().toInstant())), indicator.getValue(i).doubleValue());
+            //chartTimeSeries.add(new Day(Date.from(bar.getEndTime().toInstant())), indicator.getValue(i).doubleValue());
+            chartTimeSeries.add(new Minute(Date.from(bar.getEndTime().toInstant())), indicator.getValue(i).doubleValue());
         }
         return chartTimeSeries;
     }
@@ -76,7 +79,7 @@ public class IndicatorsToChart {
         ChartPanel panel = new ChartPanel(chart);
         panel.setFillZoomRectangle(true);
         panel.setMouseWheelEnabled(true);
-        panel.setPreferredSize(new java.awt.Dimension(500, 270));
+        panel.setPreferredSize(new Dimension(1024, 400));
         // Application frame
         ApplicationFrame frame = new ApplicationFrame("Ta4j example - Indicators to chart");
         frame.setContentPane(panel);
@@ -90,7 +93,8 @@ public class IndicatorsToChart {
         /*
           Getting time series
          */
-        TimeSeries series = CsvBarsLoader.loadAppleIncSeries();
+        //TimeSeries series = CsvBarsLoader.loadAppleIncSeries();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
 
         /*
           Creating indicators

@@ -24,6 +24,7 @@ package ta4jexamples.walkforward;
 
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
+import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.CsvTradesLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.GlobalExtremaStrategy;
@@ -123,9 +124,11 @@ public class WalkForward {
      * Splits the time series into sub-series lasting sliceDuration.<br>
      * The current time series is splitted every splitDuration.<br>
      * The last sub-series may last less than sliceDuration.
+     *
      * @param series the time series to split
      * @param splitDuration the duration between 2 splits
      * @param sliceDuration the duration of each sub-series
+     *
      * @return a list of sub-series
      */
     public static List<TimeSeries> splitSeries(TimeSeries series, Duration splitDuration, Duration sliceDuration) {
@@ -156,8 +159,10 @@ public class WalkForward {
 
     public static void main(String[] args) {
         // Splitting the series into slices
-        TimeSeries series = CsvTradesLoader.loadBitstampSeries();
-        List<TimeSeries> subseries = splitSeries(series, Duration.ofHours(6), Duration.ofDays(7));
+        //TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
+
+        List<TimeSeries> subseries = splitSeries(series, Duration.ofMinutes(1), Duration.ofDays(1));
 
         // Building the map of strategies
         Map<Strategy, String> strategies = buildStrategiesMap(series);
@@ -169,6 +174,7 @@ public class WalkForward {
             // For each sub-series...
             System.out.println("Sub-series: " + slice.getSeriesPeriodDescription());
             TimeSeriesManager sliceManager = new TimeSeriesManager(slice);
+
             for (Map.Entry<Strategy, String> entry : strategies.entrySet()) {
                 Strategy strategy = entry.getKey();
                 String name = entry.getValue();
@@ -177,6 +183,7 @@ public class WalkForward {
                 double profit = profitCriterion.calculate(slice, tradingRecord);
                 System.out.println("\tProfit for " + name + ": " + profit);
             }
+
             Strategy bestStrategy = profitCriterion.chooseBest(sliceManager, new ArrayList<Strategy>(strategies.keySet()));
             System.out.println("\t\t--> Best strategy: " + strategies.get(bestStrategy) + "\n");
         }

@@ -27,6 +27,7 @@ import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.trading.rules.OverIndicatorRule;
 import org.ta4j.core.trading.rules.UnderIndicatorRule;
+import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.CsvTradesLoader;
 
 import java.time.ZonedDateTime;
@@ -46,7 +47,9 @@ public class TradingBotOnMovingTimeSeries {
      * @return a moving time series
      */
     private static TimeSeries initMovingTimeSeries(int maxBarCount) {
-        TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        //TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
+
         System.out.print("Initial bar count: " + series.getBarCount());
         // Limitating the number of bars to maxBarCount
         series.setMaximumBarCount(maxBarCount);

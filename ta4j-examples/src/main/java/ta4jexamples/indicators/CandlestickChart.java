@@ -39,6 +39,7 @@ import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.CsvTradesLoader;
 
 import java.awt.*;
@@ -116,7 +117,8 @@ public class CandlestickChart {
         /*
           Getting time series
          */
-        TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        //TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
 
         /*
           Creating the OHLC dataset

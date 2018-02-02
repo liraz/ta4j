@@ -34,6 +34,7 @@ import org.ta4j.core.trading.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.trading.rules.CrossedUpIndicatorRule;
 import org.ta4j.core.trading.rules.StopGainRule;
 import org.ta4j.core.trading.rules.StopLossRule;
+import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.CsvTradesLoader;
 
 /**
@@ -46,7 +47,8 @@ public class Quickstart {
     public static void main(String[] args) {
 
         // Getting a time series (from any provider: CSV, web service, etc.)
-        TimeSeries series = CsvTradesLoader.loadBitstampSeries();
+        //TimeSeries series = CsvTradesLoader.loadStandardAndPoor500ESF();
+        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
 
 
         // Getting the close price of the bars
