@@ -25,6 +25,7 @@ package ta4jexamples.analysis;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYBoxAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.DatasetRenderingOrder;
@@ -32,31 +33,27 @@ import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
 import org.jfree.data.time.Minute;
 import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.DefaultHighLowDataset;
-import org.jfree.data.xy.DefaultOHLCDataset;
-import org.jfree.data.xy.OHLCDataItem;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
-import org.ta4j.core.indicators.WilliamsRIndicator;
+import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.candles.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.indicators.helpers.MaxPriceIndicator;
-import org.ta4j.core.indicators.helpers.MinPriceIndicator;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
-import ta4jexamples.strategies.GlobalExtremaStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
 import ta4jexamples.strategies.RSI2Strategy;
+import ta4jexamples.strategies.VixStrategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -67,11 +64,10 @@ public class BuyAndSellSignalsToCandlestickChart {
     /**
      * Builds a JFreeChart time series from a Ta4j time series and an indicator.
      * @param barseries the ta4j time series
-     * @param indicator the indicator
      * @param name the name of the chart time series
      * @return the JFreeChart time series
      */
-    private static OHLCDataset buildChartCandlestickDataset(TimeSeries barseries, Indicator<Decimal> indicator, String name) {
+    private static OHLCDataset buildChartCandlestickDataset(TimeSeries barseries, String name) {
         int barCount = barseries.getBarCount();
 
         Date[] date = new Date[barCount];
@@ -94,64 +90,81 @@ public class BuyAndSellSignalsToCandlestickChart {
         return new DefaultHighLowDataset(name, date, high, low, open, close, volume);
     }
 
-    /**
-     * Builds an additional JFreeChart dataset from a ta4j time series.
-     * @param series a time series
-     * @return an additional dataset
-     */
-    private static TimeSeriesCollection createAdditionalDataset(TimeSeries series) {
+    private static TimeSeriesCollection createVIXDataset(TimeSeries series) {
         ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator(series);
 
-        WilliamsRIndicator indicator = new WilliamsRIndicator(closePriceIndicator, 100,
-                new MaxPriceIndicator(series),
-                new MinPriceIndicator(series));
-
         TimeSeriesCollection dataset = new TimeSeriesCollection();
-        org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries("Btc price");
+        org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries("VIX");
         for (int i = 0; i < series.getBarCount(); i++) {
             Bar bar = series.getBar(i);
-            double normalized = indicator.getValue(i).toDouble() + 50;
-            double v = closePriceIndicator.getValue(i).toDouble() + normalized;
 
-            chartTimeSeries.add(new Second(new Date(bar.getEndTime().toEpochSecond() * 1000)), v);
+            chartTimeSeries.add(new Minute(new Date(bar.getEndTime().toEpochSecond() * 1000)),
+                    closePriceIndicator.getValue(i).toDouble());
         }
         dataset.addSeries(chartTimeSeries);
         return dataset;
+    }
+
+    private static void addVixAxis(XYPlot plot, TimeSeriesCollection dataset) {
+        final NumberAxis vixAxis = new NumberAxis("VIX");
+        vixAxis.setAutoRangeIncludesZero(false);
+        plot.setRangeAxis(1, vixAxis);
+        plot.setDataset(1, dataset);
+        plot.mapDatasetToRangeAxis(1, 1);
+
+        final StandardXYItemRenderer vixRenderer = new StandardXYItemRenderer();
+        vixRenderer.setSeriesPaint(0, Color.blue);
+        plot.setRenderer(1, vixRenderer);
     }
 
     /**
      * Runs a strategy over a time series and adds the value markers
      * corresponding to buy/sell signals to the plot.
      * @param series a time series
-     * @param strategy a trading strategy
+     * @param strategies trading strategies
      * @param plot the plot
      */
-    private static void addBuySellSignals(TimeSeries series, XYPlot plot, Strategy ...strategies) {
+    private static void addBuySellSignals(TimeSeries series, XYPlot plot, Map<Strategy, Order.OrderType> strategies) {
         // Running the strategy
         TimeSeriesManager seriesManager = new TimeSeriesManager(series);
-        List<Trade> trades = new ArrayList<>();
 
-        for (Strategy strategy : strategies) {
-            trades.addAll(seriesManager.run(strategy).getTrades());
-        }
+        for (Map.Entry<Strategy, Order.OrderType> strategyOrderTypeEntry : strategies.entrySet()) {
+            Strategy strategy = strategyOrderTypeEntry.getKey();
+            Order.OrderType orderType = strategyOrderTypeEntry.getValue();
 
-        // Adding markers to plot
-        for (Trade trade : trades) {
-            // Buy signal
-            double buySignalBarTime = new Minute(Date.from(series.getBar(trade.getEntry().getIndex()).getEndTime().toInstant())).getFirstMillisecond();
-            Marker buyMarker = new ValueMarker(buySignalBarTime);
-            buyMarker.setPaint(Color.GREEN);
-            buyMarker.setLabel("B");
-            buyMarker.setStroke(new BasicStroke(1));
-            plot.addDomainMarker(buyMarker);
-            // Sell signal
-            double sellSignalBarTime = new Minute(Date.from(series.getBar(trade.getExit().getIndex()).getEndTime().toInstant())).getFirstMillisecond();
-            Marker sellMarker = new ValueMarker(sellSignalBarTime);
-            sellMarker.setPaint(Color.RED);
-            sellMarker.setLabel("S");
-            sellMarker.setStroke(new BasicStroke(1));
-            plot.addDomainMarker(sellMarker);
+            List<Trade> trades = seriesManager.run(strategy).getTrades();
+
+            // Adding markers to plot
+            for (Trade trade : trades) {
+                int buyIndex = orderType == Order.OrderType.BUY ? trade.getEntry().getIndex() : trade.getExit().getIndex();
+                int sellIndex = orderType == Order.OrderType.BUY ? trade.getExit().getIndex() : trade.getEntry().getIndex();
+
+                // Buy signal
+                double buySignalBarTime = new Minute(Date.from(series.getBar(buyIndex).getEndTime().toInstant())).getFirstMillisecond();
+                Marker buyMarker = new ValueMarker(buySignalBarTime);
+                buyMarker.setPaint(Color.GREEN);
+                buyMarker.setLabel("B");
+                buyMarker.setStroke(new BasicStroke(1));
+                plot.addDomainMarker(buyMarker);
+
+                // Sell signal
+                double sellSignalBarTime = new Minute(Date.from(series.getBar(sellIndex).getEndTime().toInstant())).getFirstMillisecond();
+                Marker sellMarker = new ValueMarker(sellSignalBarTime);
+                sellMarker.setPaint(Color.RED);
+                sellMarker.setLabel("S");
+                sellMarker.setStroke(new BasicStroke(1));
+                plot.addDomainMarker(sellMarker);
+            }
         }
+    }
+
+    private static void addCandlesIndicators(TimeSeries series, XYPlot plot, Indicator ...indicators) {
+
+
+        XYBoxAnnotation boxAnnotation = new XYBoxAnnotation(100, 100, 50, 50,
+                new BasicStroke(2), Color.BLACK);
+        boxAnnotation.setToolTipText( "TOOLTIP" );
+        plot.addAnnotation( boxAnnotation );
     }
 
     /**
@@ -177,32 +190,44 @@ public class BuyAndSellSignalsToCandlestickChart {
 
         // Getting the time series
         //TimeSeries series = CsvTradesLoader.loadBitstampSeries();
-        TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
+        //TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
+        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL("BTCUSD=X");
+        TimeSeries vixSeries = CsvBarsLoader.loadVIXSeries();
 
-        //TODO: 1. Combine all strategies together
         //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
-        //TODO: 3. Add patterns recongnition in graph - Bolinger, 3 soldiers, Bullish reversal
+
         // Building the trading strategy
         Strategy movingMomentumStrategy = MovingMomentumStrategy.buildStrategy(series); // this one is very safe
         Strategy rsiStrategy = RSI2Strategy.buildStrategy(series);
         Strategy cciStrategy = CCICorrectionStrategy.buildStrategy(series); // this one is risky
-        //Strategy strategy = GlobalExtremaStrategy.buildStrategy(series); // this one is risky & more fit for high frequency trading
+        Strategy vixStrategy = VixStrategy.buildStrategy(vixSeries, series);
+
+        //TODO: adding indicators for candles (drawing rectangle over indicator)
+        BearishEngulfingIndicator bearishEngulfingIndicator = new BearishEngulfingIndicator(series);
+        BearishHaramiIndicator bearishHaramiIndicator = new BearishHaramiIndicator(series);
+        BullishEngulfingIndicator bullishEngulfingIndicator = new BullishEngulfingIndicator(series);
+        BullishHaramiIndicator bullishHaramiIndicator = new BullishHaramiIndicator(series);
+        LowerShadowIndicator lowerShadowIndicator = new LowerShadowIndicator(series);
+        RealBodyIndicator realBodyIndicator = new RealBodyIndicator(series);
+        ThreeBlackCrowsIndicator threeBlackCrowsIndicator = new ThreeBlackCrowsIndicator(series, 3, Decimal.valueOf("0.1"));
+        ThreeWhiteSoldiersIndicator threeWhiteSoldiersIndicator = new ThreeWhiteSoldiersIndicator(series, 3, Decimal.valueOf("0.1"));
+        UpperShadowIndicator upperShadowIndicator = new UpperShadowIndicator(series);
 
         /*
           Creating the OHLC dataset
          */
-        OHLCDataset dataset = buildChartCandlestickDataset(series, new ClosePriceIndicator(series), "S&P 500 Mini (ES=F)");
+        OHLCDataset dataset = buildChartCandlestickDataset(series, "S&P 500");
 
         /*
           Creating the additional dataset
          */
-        TimeSeriesCollection xyDataset = createAdditionalDataset(series);
+        TimeSeriesCollection vixDataset = createVIXDataset(vixSeries);
 
         /*
           Creating the chart
          */
         JFreeChart chart = ChartFactory.createCandlestickChart(
-                "S&P 500 Mini (ES=F)", // title
+                "S&P 500", // title
                 "Date", // x-axis label
                 "Price", // y-axis label
                 dataset, // data
@@ -222,13 +247,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         plot.setRenderer(renderer);
 
         // Additional dataset
-        int index = 1;
-        plot.setDataset(index, xyDataset);
-        plot.mapDatasetToRangeAxis(index, 0);
-        XYLineAndShapeRenderer renderer2 = new XYLineAndShapeRenderer(true, false);
-        renderer2.setSeriesPaint(index, Color.blue);
-        plot.setRenderer(index, renderer2);
-
+        //addVixAxis(plot, vixDataset);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
@@ -242,7 +261,19 @@ public class BuyAndSellSignalsToCandlestickChart {
         /*
           Running the strategy and adding the buy and sell signals to plot
          */
-        addBuySellSignals(series, plot, movingMomentumStrategy, rsiStrategy, cciStrategy);
+        Map<Strategy, Order.OrderType> strategies = new HashMap<>();
+        //strategies.put(vixStrategy, Order.OrderType.SELL);
+        strategies.put(rsiStrategy, Order.OrderType.BUY);
+
+        addBuySellSignals(series, plot, strategies);
+
+        /*
+          Checking all indicators and marking areas to plot
+         */
+        addCandlesIndicators(series, plot, bearishEngulfingIndicator, bearishHaramiIndicator,
+                bullishEngulfingIndicator, bullishHaramiIndicator, lowerShadowIndicator,
+                realBodyIndicator, threeBlackCrowsIndicator, threeWhiteSoldiersIndicator,
+                upperShadowIndicator);
 
         /*
           Displaying the chart

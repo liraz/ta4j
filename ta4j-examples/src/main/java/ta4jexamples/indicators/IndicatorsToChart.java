@@ -26,8 +26,9 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.time.Day;
+import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
 import org.jfree.data.time.Minute;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.ui.ApplicationFrame;
@@ -37,11 +38,14 @@ import org.ta4j.core.Decimal;
 import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.indicators.EMAIndicator;
+import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.helpers.VolumeIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
+import org.ta4j.core.indicators.volume.ChaikinMoneyFlowIndicator;
 import ta4jexamples.loaders.CsvBarsLoader;
 
 import java.awt.*;
@@ -68,6 +72,33 @@ public class IndicatorsToChart {
             chartTimeSeries.add(new Minute(Date.from(bar.getEndTime().toInstant())), indicator.getValue(i).doubleValue());
         }
         return chartTimeSeries;
+    }
+
+    private static TimeSeriesCollection createVolumeDataset(TimeSeries series) {
+        VolumeIndicator volumeIndicator = new VolumeIndicator(series, 20);
+
+        TimeSeriesCollection dataset = new TimeSeriesCollection();
+        org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries("Volume");
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+
+            chartTimeSeries.add(new Minute(new Date(bar.getEndTime().toEpochSecond() * 1000)),
+                    volumeIndicator.getValue(i).toDouble());
+        }
+        dataset.addSeries(chartTimeSeries);
+        return dataset;
+    }
+
+    private static void addVolumeAxis(XYPlot plot, TimeSeriesCollection dataset) {
+        final NumberAxis vixAxis = new NumberAxis("Volume");
+        vixAxis.setAutoRangeIncludesZero(false);
+        plot.setRangeAxis(1, vixAxis);
+        plot.setDataset(1, dataset);
+        plot.mapDatasetToRangeAxis(1, 1);
+
+        final StandardXYItemRenderer vixRenderer = new StandardXYItemRenderer();
+        vixRenderer.setSeriesPaint(0, Color.pink);
+        plot.setRenderer(1, vixRenderer);
     }
 
     /**
@@ -97,10 +128,18 @@ public class IndicatorsToChart {
         TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
 
         /*
+          Creating the additional dataset
+         */
+        TimeSeriesCollection volumeDataset = createVolumeDataset(series);
+
+        /*
           Creating indicators
          */
         // Close price
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+        SMAIndicator longSma = new SMAIndicator(closePrice, 700);
+        ChaikinMoneyFlowIndicator cmi = new ChaikinMoneyFlowIndicator(series, 20);
+
         EMAIndicator avg14 = new EMAIndicator(closePrice, 14);
         StandardDeviationIndicator sd14 = new StandardDeviationIndicator(closePrice, 14);
 
@@ -116,6 +155,7 @@ public class IndicatorsToChart {
         dataset.addSeries(buildChartTimeSeries(series, closePrice, "Apple Inc. (AAPL) - NASDAQ GS"));
         dataset.addSeries(buildChartTimeSeries(series, lowBBand, "Low Bollinger Band"));
         dataset.addSeries(buildChartTimeSeries(series, upBBand, "High Bollinger Band"));
+        dataset.addSeries(buildChartTimeSeries(series, longSma, "SMA"));
 
         /*
           Creating the chart
@@ -132,6 +172,9 @@ public class IndicatorsToChart {
         XYPlot plot = (XYPlot) chart.getPlot();
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("yyyy-MM-dd"));
+
+        // Additional dataset
+        addVolumeAxis(plot, volumeDataset);
 
         /*
           Displaying the chart

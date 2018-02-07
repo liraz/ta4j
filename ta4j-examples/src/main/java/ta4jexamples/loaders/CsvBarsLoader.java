@@ -25,6 +25,7 @@ package ta4jexamples.loaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -35,12 +36,15 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseTimeSeries;
 import org.ta4j.core.TimeSeries;
 
 import com.opencsv.CSVReader;
+import ta4jexamples.api.yahoo.YahooApiResponse;
+import ta4jexamples.api.yahoo.YahooChartResponse;
 
 /**
  * This class build a Ta4j time series from a CSV file containing bars.
@@ -55,7 +59,11 @@ public class CsvBarsLoader {
      */
     public static TimeSeries loadStandardAndPoor500ESFSeries() {
 
-        InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_20183101.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("spx500_intraday_20180202.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_20183101.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_20180202.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_04022018.csv");
+        InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_05022018.csv");
 
         List<Bar> bars = new ArrayList<>();
 
@@ -79,6 +87,79 @@ public class CsvBarsLoader {
         } catch (NumberFormatException nfe) {
             Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Error while parsing value", nfe);
         }
+        Collections.reverse(bars);
+
+        return new BaseTimeSeries("es=f_bars", bars);
+    }
+
+    public static TimeSeries loadSymbolSeriesFromURL(String symbol) {
+        List<Bar> bars = new ArrayList<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            InputStream stream = new URL("https://query1.finance.yahoo.com/v7/finance/chart/"
+                    + symbol +
+                    "?range=1y&interval=1m&indicators=quote&format=csv&includeTimestamps=true&includePrePost=false&corsDomain=finance.yahoo.com").openStream();
+
+            YahooApiResponse response = objectMapper.readValue(stream, YahooApiResponse.class);
+            YahooChartResponse chart = response.getChart();
+
+
+            CSVReader csvReader = new CSVReader(new InputStreamReader(stream, Charset.forName("UTF-8")), ';', '"', 0);
+            String[] line;
+            while ((line = csvReader.readNext()) != null) {
+                ZonedDateTime date = LocalDateTime.parse(line[0], LONG_DATE_FORMAT).atZone(ZoneId.systemDefault());
+
+                double open = Double.parseDouble(line[1]);
+                double close = Double.parseDouble(line[2]);
+                double high = Double.parseDouble(line[3]);
+                double low = Double.parseDouble(line[4]);
+                double volume = Double.parseDouble(line[5]);
+
+                bars.add(new BaseBar(date, open, high, low, close, volume));
+            }
+
+        } catch (IOException e) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", e);
+        }
+        Collections.reverse(bars);
+
+        return new BaseTimeSeries("es=f_bars", bars);
+    }
+
+    /**
+     * @return a time series from Apple Inc. bars.
+     */
+    public static TimeSeries loadVIXSeries() {
+
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("spx500_intraday_20180202.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("es_f_intraday_20183101.csv");
+        //InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("vix_20180202.csv");
+        InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("vix_20180502.csv");
+
+        List<Bar> bars = new ArrayList<>();
+
+        CSVReader csvReader = new CSVReader(new InputStreamReader(stream, Charset.forName("UTF-8")), ';', '"', 0);
+        try {
+            String[] line;
+            while ((line = csvReader.readNext()) != null) {
+                ZonedDateTime date = LocalDateTime.parse(line[0], LONG_DATE_FORMAT).atZone(ZoneId.systemDefault());
+
+                double open = Double.parseDouble(line[1]);
+                double close = Double.parseDouble(line[2]);
+                double high = Double.parseDouble(line[3]);
+                double low = Double.parseDouble(line[4]);
+                double volume = Double.parseDouble(line[5]);
+
+                bars.add(new BaseBar(date, open, high, low, close, volume));
+            }
+
+        } catch (IOException ioe) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", ioe);
+        } catch (NumberFormatException nfe) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Error while parsing value", nfe);
+        }
+        Collections.reverse(bars);
 
         return new BaseTimeSeries("es=f_bars", bars);
     }
