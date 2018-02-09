@@ -45,6 +45,8 @@ import org.ta4j.core.TimeSeries;
 import com.opencsv.CSVReader;
 import ta4jexamples.api.yahoo.YahooApiResponse;
 import ta4jexamples.api.yahoo.YahooChartResponse;
+import ta4jexamples.api.yahoo.YahooChartResponseResult;
+import ta4jexamples.api.yahoo.result.indicator.YahooIndicatorQuote;
 
 /**
  * This class build a Ta4j time series from a CSV file containing bars.
@@ -97,26 +99,59 @@ public class CsvBarsLoader {
         ObjectMapper objectMapper = new ObjectMapper();
 
         try {
-            InputStream stream = new URL("https://query1.finance.yahoo.com/v7/finance/chart/"
-                    + symbol +
-                    "?range=1y&interval=1m&indicators=quote&format=csv&includeTimestamps=true&includePrePost=false&corsDomain=finance.yahoo.com").openStream();
+            InputStream stream = new URL("https://query1.finance.yahoo.com/v7/finance/chart/" + symbol +
+                    "?range=1d&interval=1m&indicators=quote&format=csv" +
+                    "&includeTimestamps=true&includePrePost=false&corsDomain=finance.yahoo.com").openStream();
 
             YahooApiResponse response = objectMapper.readValue(stream, YahooApiResponse.class);
             YahooChartResponse chart = response.getChart();
 
+            List<YahooChartResponseResult> result = chart.getResult();
+            if(result != null && result.size() > 0) {
+                YahooChartResponseResult yahooChartResponseResult = result.get(0);
+                List<Long> timestamps = yahooChartResponseResult.getTimestamp();
+                List<YahooIndicatorQuote> quotes = yahooChartResponseResult.getIndicators().getQuote();
 
-            CSVReader csvReader = new CSVReader(new InputStreamReader(stream, Charset.forName("UTF-8")), ';', '"', 0);
-            String[] line;
-            while ((line = csvReader.readNext()) != null) {
-                ZonedDateTime date = LocalDateTime.parse(line[0], LONG_DATE_FORMAT).atZone(ZoneId.systemDefault());
+                if(quotes != null && quotes.size() > 0) {
+                    YahooIndicatorQuote yahooIndicatorQuote = quotes.get(0);
 
-                double open = Double.parseDouble(line[1]);
-                double close = Double.parseDouble(line[2]);
-                double high = Double.parseDouble(line[3]);
-                double low = Double.parseDouble(line[4]);
-                double volume = Double.parseDouble(line[5]);
+                    List<Double> closes = yahooIndicatorQuote.getClose();
+                    List<Double> highs = yahooIndicatorQuote.getHigh();
+                    List<Double> lows = yahooIndicatorQuote.getLow();
+                    List<Double> opens = yahooIndicatorQuote.getOpen();
+                    List<Double> volumes = yahooIndicatorQuote.getVolume();
 
-                bars.add(new BaseBar(date, open, high, low, close, volume));
+                    for (int i = 0; i < timestamps.size(); i++) {
+                        Long timestamp = timestamps.get(i);
+
+                        Double close = closes.get(i);
+                        Double high = highs.get(i);
+                        Double low = lows.get(i);
+                        Double open = opens.get(i);
+                        Double volume = volumes.get(i);
+
+                        if(close == null) {
+                            close = getPreviousNotNullValue(closes, i);
+                        }
+                        if(high == null) {
+                            high = getPreviousNotNullValue(highs, i);
+                        }
+                        if(low == null) {
+                            low = getPreviousNotNullValue(lows, i);
+                        }
+                        if(open == null) {
+                            open = getPreviousNotNullValue(opens, i);
+                        }
+                        if(volume == null) {
+                            volume = getPreviousNotNullValue(volumes, i);
+                        }
+
+                        //if (close != null && high != null && low != null && open != null) {
+                            ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
+                            bars.add(new BaseBar(dateTime, open, high, low, close, volume));
+                        //}
+                    }
+                }
             }
 
         } catch (IOException e) {
@@ -124,7 +159,17 @@ public class CsvBarsLoader {
         }
         Collections.reverse(bars);
 
-        return new BaseTimeSeries("es=f_bars", bars);
+        return new BaseTimeSeries(symbol + "_bars", bars);
+    }
+
+    private static Double getPreviousNotNullValue(List<Double> doubles, int currentIndex) {
+        for (int i = currentIndex; i >= 0; i--) {
+            Double value = doubles.get(i);
+            if(value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     /**

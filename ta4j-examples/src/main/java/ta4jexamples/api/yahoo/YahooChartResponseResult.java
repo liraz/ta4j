@@ -8,7 +8,7 @@ import java.util.List;
 public class YahooChartResponseResult {
 
 	private YahooResultMeta meta;
-	private List<Integer> timestamp;
+	private List<Long> timestamp;
 	private YahooResultIndicators indicators;
 
 	public YahooResultMeta getMeta() {
@@ -19,11 +19,11 @@ public class YahooChartResponseResult {
 		this.meta = meta;
 	}
 
-	public List<Integer> getTimestamp() {
+	public List<Long> getTimestamp() {
 		return timestamp;
 	}
 
-	public void setTimestamp(List<Integer> timestamp) {
+	public void setTimestamp(List<Long> timestamp) {
 		this.timestamp = timestamp;
 	}
 
