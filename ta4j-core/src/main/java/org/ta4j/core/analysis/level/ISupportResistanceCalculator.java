@@ -1,8 +1,13 @@
 package org.ta4j.core.analysis.level;
 
+import org.ta4j.core.TimeSeries;
+
 import java.util.List;
 
 public interface ISupportResistanceCalculator {
+
+	Tuple<List<Level>, List<Level>> identify(
+			TimeSeries timeseries, int timeFrame);
 
 	/**
 	 * Identifies support / resistance levels.

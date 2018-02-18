@@ -19,7 +19,7 @@ public class YahooResultMeta {
     private Integer previousClose;
     private Integer scale;
     private YahooTradingPeriods currentTradingPeriod;
-    private List<Object> tradingPeriods;
+    private Object tradingPeriods;
     private String dataGranularity;
     private List<String> validRanges;
 
@@ -135,11 +135,11 @@ public class YahooResultMeta {
         this.validRanges = validRanges;
     }
 
-    public List<Object> getTradingPeriods() {
+    public Object getTradingPeriods() {
         return tradingPeriods;
     }
 
-    public void setTradingPeriods(List<Object> tradingPeriods) {
+    public void setTradingPeriods(Object tradingPeriods) {
         this.tradingPeriods = tradingPeriods;
     }
 }

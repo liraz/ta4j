@@ -94,14 +94,12 @@ public class CsvBarsLoader {
         return new BaseTimeSeries("es=f_bars", bars);
     }
 
-    public static TimeSeries loadSymbolSeriesFromURL(String symbol) {
+    public static TimeSeries loadSymbolSeriesFromURL(String url) {
         List<Bar> bars = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
         try {
-            InputStream stream = new URL("https://query1.finance.yahoo.com/v7/finance/chart/" + symbol +
-                    "?range=1d&interval=1m&indicators=quote&format=csv" +
-                    "&includeTimestamps=true&includePrePost=false&corsDomain=finance.yahoo.com").openStream();
+            InputStream stream = new URL(url).openStream();
 
             YahooApiResponse response = objectMapper.readValue(stream, YahooApiResponse.class);
             YahooChartResponse chart = response.getChart();
@@ -130,26 +128,10 @@ public class CsvBarsLoader {
                         Double open = opens.get(i);
                         Double volume = volumes.get(i);
 
-                        if(close == null) {
-                            close = getPreviousNotNullValue(closes, i);
-                        }
-                        if(high == null) {
-                            high = getPreviousNotNullValue(highs, i);
-                        }
-                        if(low == null) {
-                            low = getPreviousNotNullValue(lows, i);
-                        }
-                        if(open == null) {
-                            open = getPreviousNotNullValue(opens, i);
-                        }
-                        if(volume == null) {
-                            volume = getPreviousNotNullValue(volumes, i);
-                        }
-
-                        //if (close != null && high != null && low != null && open != null) {
+                        if (close != null && open != null) {
                             ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
                             bars.add(new BaseBar(dateTime, open, high, low, close, volume));
-                        //}
+                        }
                     }
                 }
             }
@@ -159,17 +141,7 @@ public class CsvBarsLoader {
         }
         Collections.reverse(bars);
 
-        return new BaseTimeSeries(symbol + "_bars", bars);
-    }
-
-    private static Double getPreviousNotNullValue(List<Double> doubles, int currentIndex) {
-        for (int i = currentIndex; i >= 0; i--) {
-            Double value = doubles.get(i);
-            if(value != null) {
-                return value;
-            }
-        }
-        return null;
+        return new BaseTimeSeries("url_bars", bars);
     }
 
     /**

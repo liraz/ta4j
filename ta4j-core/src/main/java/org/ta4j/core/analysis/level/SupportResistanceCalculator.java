@@ -1,26 +1,19 @@
 package org.ta4j.core.analysis.level;
 
-/*import static com.perseus.analysis.constant.LevelType.RESISTANCE;
-import static com.perseus.analysis.constant.LevelType.SUPPORT;*/
+import org.ta4j.core.Bar;
+import org.ta4j.core.TimeSeries;
+import org.ta4j.core.utils.CollectionUtils;
+
 import static org.ta4j.core.analysis.level.LevelType.RESISTANCE;
 import static org.ta4j.core.analysis.level.LevelType.SUPPORT;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-/*import com.google.common.collect.Lists;
-import com.perseus.analysis.calculator.mean.IMeanCalculator;
-import com.perseus.analysis.calculator.timeseries.ITimeSeriesCalculator;
-import com.perseus.analysis.constant.LevelType;
-import com.perseus.analysis.model.Tuple;
-import com.perseus.analysis.model.technical.Level;
-import com.perseus.analysis.model.timeseries.ITimeseries;
-import com.perseus.analysis.util.CollectionUtils;*/
+import com.google.common.collect.Lists;
 
 /**
  * A support and resistance calculator.
@@ -42,7 +35,7 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 	static class Support implements LevelHelper {
 
 		@Override
-		public Float aggregate(final List<Float> data) {
+		public synchronized Float aggregate(final List<Float> data) {
 			return Collections.min(data);
 		}
 
@@ -94,16 +87,24 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 
 	private static final LevelHelper RESISTANCE_HELPER = new Resistance();
 
-	/*private final ITimeSeriesCalculator tsCalc;
+	private final MeanCalculator meanCalc;
 
-	private final IMeanCalculator meanCalc;*/
-
-	public SupportResistanceCalculator(/*final ITimeSeriesCalculator tsCalc,
-									   final IMeanCalculator meanCalc*/) {
+	public SupportResistanceCalculator() {
 		super();
 
-		/*this.tsCalc = tsCalc;
-		this.meanCalc = meanCalc;*/
+		this.meanCalc = new MeanCalculator();
+	}
+
+	@Override
+	public Tuple<List<Level>, List<Level>> identify(
+			final TimeSeries timeseries, final int timeFrame) {
+
+		List<Float> values = new ArrayList<>();
+		for (int i = 0; i < timeseries.getBarCount(); i++) {
+			Bar bar = timeseries.getBar(i);
+			values.add(bar.getClosePrice().floatValue());
+		}
+		return identify(values, 0, values.size(), timeFrame, 1.0f / (values.size() / timeFrame));
 	}
 
 	@Override
@@ -111,13 +112,12 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 			final List<Float> timeseries, final int beginIndex,
 			final int endIndex, final int segmentSize, final float rangePct) {
 
-		/*final List<Float> series = this.seriesToWorkWith(timeseries,
-				beginIndex, endIndex);
+		final List<Float> series = this.seriesToWorkWith(timeseries, beginIndex, endIndex);
 		// Split the timeseries into chunks
 		final List<List<Float>> segments = this.splitList(series, segmentSize);
-		final Float priceAsOfDate = series.get(series.size() - 1);*/
+		final Float priceAsOfDate = series.get(series.size() - 1);
 
-		/*final List<Level> levels = Lists.newArrayList();
+		final List<Level> levels = Lists.newArrayList();
 		this.identifyLevel(levels, segments, rangePct, priceAsOfDate,
 				SUPPORT_HELPER);
 
@@ -129,16 +129,16 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 		this.separateLevels(support, resistance, levels);
 
 		// Smoothen the levels
-		this.smoothen(support, resistance, rangePct);*/
+		this.smoothen(support, resistance, rangePct);
 
-		return new Tuple<>(null, null);//support, resistance);
+		return new Tuple<>(support, resistance);
 	}
 
 	private void identifyLevel(final List<Level> levels,
 							   final List<List<Float>> segments, final float rangePct,
 							   final float priceAsOfDate, final LevelHelper helper) {
 
-		/*final List<Float> aggregateVals = Lists.newArrayList();
+		final List<Float> aggregateVals = Lists.newArrayList();
 
 		// Find min/max of each segment
 		for (final List<Float> segment : segments) {
@@ -165,22 +165,24 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 			CollectionUtils.remove(aggregateVals, withinRangeIdx);
 
 			// Take an average
-			final float level = this.meanCalc.mean(
-					withinRange.toArray(new Float[] {}), 0, withinRange.size());
+			final float level = this.meanCalc.mean(withinRange.<Float>toArray(new Float[] {}));
 			final float strength = withinRange.size();
 
-			levels.add(new Level(helper.type(level, priceAsOfDate, rangePct),
-					level, strength));
-
-		}*/
-
+			LevelType levelType = helper.type(level, priceAsOfDate, rangePct);
+			levels.add(new Level(levelType, level, strength));
+		}
 	}
 
-	/*private List<List<Float>> splitList(final List<Float> series,
+	private List<List<Float>> splitList(final List<Float> series,
 										final int segmentSize) {
-		final List<List<Float>> splitList = CollectionUtils
-				.convertToNewLists(CollectionUtils.splitList(series,
-						segmentSize));
+
+		final List<List<Float>> splitList = Lists.newArrayList();
+
+		final int len = series.size();
+		for (int i = 0; i < len; i += segmentSize) {
+			int endIndex = Math.min(len, i + segmentSize);
+			splitList.add(Lists.newArrayList(series.subList(i, endIndex)));
+		}
 
 		if (splitList.size() > 1) {
 			// If last segment it too small
@@ -194,9 +196,8 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 				splitList.get(lastIdx - 1).addAll(last);
 			}
 		}
-
 		return splitList;
-	}*/
+	}
 
 	private void separateLevels(final List<Level> support,
 								final List<Level> resistance, final List<Level> levels) {
@@ -209,18 +210,18 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 		}
 	}
 
-	/*private void smoothen(final List<Level> support,
+	private void smoothen(final List<Level> support,
 						  final List<Level> resistance, final float rangePct) {
 		for (int i = 0; i < SMOOTHEN_COUNT; ++i) {
 			this.smoothen(support, rangePct);
 			this.smoothen(resistance, rangePct);
 		}
-	}*/
+	}
 
 	/**
 	 * Removes one of the adjacent levels which are close to each other.
 	 */
-	/*private void smoothen(final List<Level> levels, final float rangePct) {
+	private void smoothen(final List<Level> levels, final float rangePct) {
 		if (levels.size() < 2)
 			return;
 
@@ -244,7 +245,7 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 		}
 
 		CollectionUtils.remove(levels, removeIdx);
-	}*/
+	}
 
 	private List<Float> seriesToWorkWith(final List<Float> timeseries,
 										 final int beginIndex, final int endIndex) {
@@ -253,7 +254,6 @@ public class SupportResistanceCalculator implements ISupportResistanceCalculator
 			return timeseries;
 
 		return timeseries.subList(beginIndex, endIndex);
-
 	}
 
 }

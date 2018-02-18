@@ -8,7 +8,7 @@ import java.io.Serializable;
  * @author PRITESH
  *
  */
-public class Level implements Serializable {
+public class Level implements Serializable, Comparable<Level> {
 
 	private static final long serialVersionUID = -7561265699198045328L;
 
@@ -43,5 +43,10 @@ public class Level implements Serializable {
 	public String toString() {
 		return "Level [type=" + this.type + ", level=" + this.level
 				+ ", strength=" + this.strength + "]";
+	}
+
+	@Override
+	public int compareTo(Level o) {
+		return Float.compare(getLevel(), o.getLevel());
 	}
 }

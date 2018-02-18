@@ -22,6 +22,7 @@
  */
 package ta4jexamples.analysis;
 
+import com.google.common.collect.Lists;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -42,9 +43,17 @@ import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
+import org.ta4j.core.analysis.level.Level;
+import org.ta4j.core.analysis.level.LevelType;
+import org.ta4j.core.analysis.level.SupportResistanceCalculator;
+import org.ta4j.core.analysis.level.Tuple;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.candles.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.pivotpoints.FibonacciReversalIndicator;
+import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
+import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
+import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
@@ -55,6 +64,10 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.*;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_2;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_3;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
@@ -158,6 +171,160 @@ public class BuyAndSellSignalsToCandlestickChart {
         }
     }
 
+
+    private static TimeSeriesCollection addPivotPointIndicator(TimeSeries series) {
+        PivotPointIndicator pp = new PivotPointIndicator(series, TimeLevel.BARBASED);
+
+        StandardReversalIndicator s1 = new StandardReversalIndicator(pp, SUPPORT_1);
+        StandardReversalIndicator s2 = new StandardReversalIndicator(pp, SUPPORT_2);
+        StandardReversalIndicator s3 = new StandardReversalIndicator(pp, SUPPORT_3);
+        StandardReversalIndicator r1 = new StandardReversalIndicator(pp, RESISTANCE_1);
+        StandardReversalIndicator r2 = new StandardReversalIndicator(pp, RESISTANCE_2);
+        StandardReversalIndicator r3 = new StandardReversalIndicator(pp, RESISTANCE_3);
+
+        FibonacciReversalIndicator fibR3 = new FibonacciReversalIndicator(pp, Decimal.ONE, FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
+        FibonacciReversalIndicator fibR2 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.618), FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
+        FibonacciReversalIndicator fibR1 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.382), FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
+        FibonacciReversalIndicator fibS1 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.382), FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
+        FibonacciReversalIndicator fibS2 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.618), FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
+        FibonacciReversalIndicator fibS3 = new FibonacciReversalIndicator(pp, Decimal.ONE, FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
+
+        TimeSeriesCollection dataset = new TimeSeriesCollection();
+
+        org.jfree.data.time.TimeSeries s1TimeSeries = new org.jfree.data.time.TimeSeries("S1");
+        org.jfree.data.time.TimeSeries s2TimeSeries = new org.jfree.data.time.TimeSeries("S2");
+        org.jfree.data.time.TimeSeries s3TimeSeries = new org.jfree.data.time.TimeSeries("S3");
+        org.jfree.data.time.TimeSeries r1TimeSeries = new org.jfree.data.time.TimeSeries("R1");
+        org.jfree.data.time.TimeSeries r2TimeSeries = new org.jfree.data.time.TimeSeries("R2");
+        org.jfree.data.time.TimeSeries r3TimeSeries = new org.jfree.data.time.TimeSeries("R3");
+
+        org.jfree.data.time.TimeSeries fibS1TimeSeries = new org.jfree.data.time.TimeSeries("Fib S1");
+        org.jfree.data.time.TimeSeries fibS2TimeSeries = new org.jfree.data.time.TimeSeries("Fib S2");
+        org.jfree.data.time.TimeSeries fibS3TimeSeries = new org.jfree.data.time.TimeSeries("Fib S3");
+        org.jfree.data.time.TimeSeries fibR1TimeSeries = new org.jfree.data.time.TimeSeries("Fib R1");
+        org.jfree.data.time.TimeSeries fibR2TimeSeries = new org.jfree.data.time.TimeSeries("Fib R2");
+        org.jfree.data.time.TimeSeries fibR3TimeSeries = new org.jfree.data.time.TimeSeries("Fib R3");
+
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+
+            Minute period = new Minute(new Date(bar.getEndTime().toEpochSecond() * 1000));
+            s1TimeSeries.add(period,
+                    s1.getValue(i).toDouble());
+            s2TimeSeries.add(period,
+                    s2.getValue(i).toDouble());
+            s3TimeSeries.add(period,
+                    s3.getValue(i).toDouble());
+
+            r1TimeSeries.add(period,
+                    r1.getValue(i).toDouble());
+            r2TimeSeries.add(period,
+                    r2.getValue(i).toDouble());
+            r3TimeSeries.add(period,
+                    r3.getValue(i).toDouble());
+
+            fibR1TimeSeries.add(period,
+                    fibR1.getValue(i).toDouble());
+            fibR2TimeSeries.add(period,
+                    fibR2.getValue(i).toDouble());
+            fibR3TimeSeries.add(period,
+                    fibR3.getValue(i).toDouble());
+
+            fibS1TimeSeries.add(period,
+                    fibS1.getValue(i).toDouble());
+            fibS2TimeSeries.add(period,
+                    fibS2.getValue(i).toDouble());
+            fibS3TimeSeries.add(period,
+                    fibS3.getValue(i).toDouble());
+        }
+        dataset.addSeries(s1TimeSeries);
+        dataset.addSeries(s2TimeSeries);
+        dataset.addSeries(s3TimeSeries);
+        dataset.addSeries(r1TimeSeries);
+        dataset.addSeries(r2TimeSeries);
+        dataset.addSeries(r3TimeSeries);
+        dataset.addSeries(fibR1TimeSeries);
+        dataset.addSeries(fibR2TimeSeries);
+        dataset.addSeries(fibR3TimeSeries);
+        dataset.addSeries(fibS1TimeSeries);
+        dataset.addSeries(fibS2TimeSeries);
+        dataset.addSeries(fibS3TimeSeries);
+
+        return dataset;
+    }
+
+    private static void addSupportAndResistance(TimeSeries series, XYPlot plot) {
+        // Running the strategy
+        /*SupportResistanceCalculator calculator = new SupportResistanceCalculator();
+        Tuple<List<Level>, List<Level>> levels = calculator.identify(series, series.getBarCount() / 10);
+
+        List<Level> supportLevels = levels.getA();
+        List<Level> resistanceLevels = levels.getB();*/
+
+        List<Level> supportLevels = Lists.newArrayList();
+        List<Level> resistanceLevels = Lists.newArrayList();
+
+        float delta = 6.0f; // delta used for distinguishing peaks
+
+        int mxPos = 0;
+        int mnPos = 0;
+
+        Bar firstBar = series.getBar(0);
+        float mx = firstBar.getClosePrice().floatValue();
+        float mn = firstBar.getClosePrice().floatValue();
+
+        boolean isDetectingEmi = false; // should we search emission peak first of absorption peak first?
+
+        for(int i = 1; i < series.getBarCount(); ++i) {
+            Bar bar = series.getBar(i);
+            float closePrice = bar.getClosePrice().floatValue();
+
+            if (closePrice > mx) {
+                mxPos = i;
+                mx = closePrice;
+            }
+            if (closePrice < mn) {
+                mnPos = i;
+                mn = closePrice;
+            }
+
+            if(isDetectingEmi && closePrice < mx - delta) {
+                resistanceLevels.add(new Level(LevelType.RESISTANCE, mx, mx));
+
+                isDetectingEmi = false;
+
+                i = mxPos - 1;
+
+                mn = series.getBar(mxPos).getClosePrice().floatValue();
+                mnPos = mxPos;
+            }
+            else if(!isDetectingEmi && closePrice > mn + delta) {
+                supportLevels.add(new Level(LevelType.SUPPORT, mn, mn));
+
+                isDetectingEmi = true;
+
+                i = mnPos - 1;
+
+                mx = series.getBar(mnPos).getClosePrice().floatValue();
+                mxPos = mnPos;
+            }
+        }
+
+        for (Level supportLevel : supportLevels) {
+            Marker supportMarker = new ValueMarker(supportLevel.getLevel());
+            supportMarker.setPaint(Color.GREEN.darker());
+            supportMarker.setStroke(new BasicStroke(1));
+            plot.addRangeMarker(supportMarker);
+        }
+
+        for (Level resistanceLevel : resistanceLevels) {
+            Marker resistanceMarker = new ValueMarker(resistanceLevel.getLevel());
+            resistanceMarker.setPaint(Color.RED.darker());
+            resistanceMarker.setStroke(new BasicStroke(1));
+            plot.addRangeMarker(resistanceMarker);
+        }
+    }
+
     private static void addCandlesIndicators(TimeSeries series, XYPlot plot, Indicator ...indicators) {
 
 
@@ -187,11 +354,24 @@ public class BuyAndSellSignalsToCandlestickChart {
     }
 
     public static void main(String[] args) {
+        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
+                "?range=2d&interval=5m&indicators=quote" +
+                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
+        String title = "Bitcoin";*/
 
+        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
+                "?range=2d&interval=1m&indicators=quote" +
+                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
+        String title = "S&P500";
+
+        plotSymbol(url, title);
+    }
+
+    private static void plotSymbol(String url, String title) {
         // Getting the time series
         //TimeSeries series = CsvTradesLoader.loadBitstampSeries();
         //TimeSeries series = CsvBarsLoader.loadStandardAndPoor500ESFSeries();
-        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL("BTCUSD=X");
+        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
         TimeSeries vixSeries = CsvBarsLoader.loadVIXSeries();
 
         //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
@@ -216,7 +396,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         /*
           Creating the OHLC dataset
          */
-        OHLCDataset dataset = buildChartCandlestickDataset(series, "S&P 500");
+        OHLCDataset dataset = buildChartCandlestickDataset(series, title);
 
         /*
           Creating the additional dataset
@@ -224,15 +404,20 @@ public class BuyAndSellSignalsToCandlestickChart {
         TimeSeriesCollection vixDataset = createVIXDataset(vixSeries);
 
         /*
+          Creating the additional dataset
+         */
+        //TimeSeriesCollection pivotDataset = addPivotPointIndicator(series);
+
+        /*
           Creating the chart
          */
         JFreeChart chart = ChartFactory.createCandlestickChart(
-                "S&P 500", // title
+                title, // title
                 "Date", // x-axis label
                 "Price", // y-axis label
                 dataset, // data
                 true // create legend?
-                );
+        );
 
         chart.setBackgroundPaint(Color.WHITE);
         chart.setBorderPaint(Color.BLACK);
@@ -248,6 +433,9 @@ public class BuyAndSellSignalsToCandlestickChart {
 
         // Additional dataset
         //addVixAxis(plot, vixDataset);
+        //addVixAxis(plot, pivotDataset);
+
+        //addSupportAndResistance(series, plot);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
@@ -264,8 +452,10 @@ public class BuyAndSellSignalsToCandlestickChart {
         Map<Strategy, Order.OrderType> strategies = new HashMap<>();
         //strategies.put(vixStrategy, Order.OrderType.SELL);
         strategies.put(rsiStrategy, Order.OrderType.BUY);
+        strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
+        strategies.put(cciStrategy, Order.OrderType.BUY);
 
-        addBuySellSignals(series, plot, strategies);
+        //addBuySellSignals(series, plot, strategies);
 
         /*
           Checking all indicators and marking areas to plot
