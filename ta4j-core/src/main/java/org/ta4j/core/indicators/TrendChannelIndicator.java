@@ -22,24 +22,24 @@
  */
 package org.ta4j.core.indicators;
 
-import org.ta4j.core.Bar;
-import org.ta4j.core.Decimal;
-import org.ta4j.core.TimeSeries;
-import org.ta4j.core.indicators.helpers.HighestValueIndicator;
-import org.ta4j.core.indicators.helpers.LowestValueIndicator;
-import org.ta4j.core.indicators.helpers.MaxPriceIndicator;
-import org.ta4j.core.indicators.helpers.MinPriceIndicator;
+import org.ta4j.core.*;
+import org.ta4j.core.indicators.helpers.*;
 import org.ta4j.core.indicators.statistics.SimpleLinearRegressionIndicator;
 import org.ta4j.core.utils.FixedQueue;
+import org.ta4j.core.utils.LinearRegression;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Trend channel indicator.
  */
-public class TrendChannelIndicator extends RecursiveCachedIndicator<Decimal> {
+public class TrendChannelIndicator extends CachedIndicator<Decimal> {
 
     private final TimeSeries series;
 
-    private SimpleLinearRegressionIndicator linearRegression;
+    private LinearRegression linearRegression;
     private float containedCandlesRatio;
     private boolean considerOnlyClose;
 
@@ -48,66 +48,146 @@ public class TrendChannelIndicator extends RecursiveCachedIndicator<Decimal> {
 
     private FixedQueue<Bar> candles;
 
-
-    private Bar lastCandle;
     private FixedQueue<Bar> delayedQueue;
-    private int direction;
-    private int confirmationCandles;
 
 
-    public TrendChannelIndicator(TimeSeries series, int numberOfCandles) {
-        this(series, numberOfCandles, 0.95F, false);
+    public TrendChannelIndicator(TimeSeries series, int startIndex, int endIndex) {
+        this(series, startIndex, endIndex, 0.95F, false, 1);
     }
 
     /**
      * Creates a new TrendChannel
      *
-     * @param numberOfCandles - number of candles to maintain in channel. New candles as put in head of queue and the oldest is discarded.
+     * @param series
      * @param containedCandlesRatio - 0-1 percent of candles that will be inside channel
      * @param considerOnlyClose - if true, consider only the close value to evaluate a candle inside channel, otherwise, consider the whole body
      */
-    public TrendChannelIndicator(TimeSeries series, int numberOfCandles, float containedCandlesRatio, boolean considerOnlyClose) {
+    public TrendChannelIndicator(TimeSeries series, int startIndex, int endIndex, float containedCandlesRatio,
+                                 boolean considerOnlyClose, int trendDelayCandles) {
         super(series);
         this.series = series;
 
+        int numberOfCandles = endIndex - startIndex;
+
         if(containedCandlesRatio<0 || containedCandlesRatio>1) throw new IllegalArgumentException("containedCandlesRatio must be between 0 and 1. value=" + containedCandlesRatio);
 
-        this.linearRegression = new SimpleLinearRegressionIndicator(null, numberOfCandles,
-                SimpleLinearRegressionIndicator.SimpleLinearRegressionType.y);
+        ClosePriceIndicator indicator = new ClosePriceIndicator(series);
+        this.linearRegression = new LinearRegression(numberOfCandles);
         this.candles = new FixedQueue<Bar>(numberOfCandles);
 
         this.containedCandlesRatio = containedCandlesRatio;
         this.considerOnlyClose = considerOnlyClose;
+
+        this.delayedQueue = new FixedQueue<Bar>(trendDelayCandles);
+
+        fillIndicator(startIndex, endIndex);
+    }
+
+    private void fillIndicator(int startIndex, int endIndex) {
+        for (int i = startIndex; i < endIndex; i++) {
+            Bar bar = series.getBar(i);
+            calculate(i);
+        }
     }
 
     @Override
     protected Decimal calculate(int index) {
         Decimal sar = Decimal.NaN;
 
-        //keep trend channel at 3 days ago
+        Bar candle = series.getBar(index);
+
+        //keep trend channel at 'trendDelayCandles'
         delayedQueue.add(candle);
+
         if(delayedQueue.isFull()) {
-            //TODO: Add here the logic for the calculator - delayedQueue.get(0) = candle
-            //trendChannel.addCandle(delayedQueue.get(0));
+            Bar delayedBar = delayedQueue.get(0);
 
             dirtyRadius = true;
-            linearRegression.addSample(candle.getDate().getTime(), (float) candle.getClose());
+            linearRegression.addSample(candle.getEndTime().toEpochSecond() * 1000d, candle.getClosePrice().doubleValue());
             candles.add(candle);
         }
-        //define direction
-        if(lastCandle!=null) {
-            if(candle.getClose()>lastCandle.getClose()) {
-                if(direction>0) direction++;
-                else direction = 1;
-            } else if(candle.getClose()<lastCandle.getClose()) {
-                if(direction<0) direction--;
-                else direction = -1;
-            } else {
-                direction = 0;
-            }
-        }
-        lastCandle = candle;
 
         return sar;
+    }
+
+    /**
+     * Returns the trend line in the form y = a + bx, where a = return[0]; b = return[1]
+     * @return
+     */
+    public Line getMainTrendLine() {
+        return linearRegression.regress();
+    }
+
+    public double getChannelRadius() {
+        if(!dirtyRadius) return lastChannelRadius;
+
+        //order candles by error
+        Line mtl = getMainTrendLine();
+        List<BarError> errors = new ArrayList<BarError>();
+        for (Bar candle : candles) {
+            errors.add(new BarError(candle, calcError(candle, mtl)));
+        }
+        Collections.sort(errors);
+
+        int pos = (int)((errors.size()-1) * containedCandlesRatio);
+        lastChannelRadius = errors.get(pos).getError();
+        return lastChannelRadius;
+    }
+
+    private double calcError(Bar candle, Line mtl) {
+        double ideal = mtl.getYForX(candle.getEndTime().toEpochSecond() * 1000d);
+        if(considerOnlyClose) {
+            return Math.abs(ideal - candle.getClosePrice().doubleValue());
+        } else {
+            return Math.max(Math.abs(ideal - candle.getMinPrice().doubleValue()), Math.abs(ideal - candle.getMaxPrice().doubleValue()));
+        }
+    }
+
+    public FixedQueue<Bar> getCandles() {
+        return candles;
+    }
+
+    public long getTime1() {
+        return getCandles().get(0).getEndTime().toEpochSecond() * 1000;
+    }
+
+    public long getTime2() {
+        return getCandles().get(getCandles().getSize()-1).getEndTime().toEpochSecond() * 1000;
+    }
+
+    public double getMainPrice1() {
+        return getMainTrendLine().getYForX(getTime1());
+    }
+
+    public double getMainPrice2() {
+        return getMainTrendLine().getYForX(getTime2());
+    }
+
+    public boolean isFull() {
+        return candles.isFull();
+    }
+
+    public double getUpperPrice1() {
+        return getUpperPrice(getTime1());
+    }
+
+    public double getLowerPrice1() {
+        return getLowerPrice(getTime1());
+    }
+
+    public double getUpperPrice2() {
+        return getUpperPrice(getTime2());
+    }
+
+    public double getLowerPrice2() {
+        return getLowerPrice(getTime2());
+    }
+
+    public double getUpperPrice(long millis) {
+        return getMainTrendLine().getYForX(millis)+getChannelRadius();
+    }
+
+    public double getLowerPrice(long millis) {
+        return getMainTrendLine().getYForX(millis)-getChannelRadius();
     }
 }

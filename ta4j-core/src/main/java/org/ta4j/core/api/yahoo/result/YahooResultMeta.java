@@ -1,6 +1,6 @@
-package ta4jexamples.api.yahoo.result;
+package org.ta4j.core.api.yahoo.result;
 
-import ta4jexamples.api.yahoo.result.meta.YahooTradingPeriods;
+import org.ta4j.core.api.yahoo.result.meta.YahooTradingPeriods;
 
 import java.util.Date;
 import java.util.List;

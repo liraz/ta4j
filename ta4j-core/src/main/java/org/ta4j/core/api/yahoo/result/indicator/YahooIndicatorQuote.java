@@ -1,4 +1,4 @@
-package ta4jexamples.api.yahoo.result.indicator;
+package org.ta4j.core.api.yahoo.result.indicator;
 
 import java.util.List;
 

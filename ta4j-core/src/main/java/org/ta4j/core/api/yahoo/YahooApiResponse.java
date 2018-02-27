@@ -1,4 +1,4 @@
-package ta4jexamples.api.yahoo;
+package org.ta4j.core.api.yahoo;
 
 public class YahooApiResponse {
 

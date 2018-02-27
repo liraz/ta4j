@@ -1,4 +1,4 @@
-package ta4jexamples.api.yahoo.result.meta;
+package org.ta4j.core.api.yahoo.result.meta;
 
 import java.util.Date;
 

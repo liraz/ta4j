@@ -48,12 +48,14 @@ import org.ta4j.core.analysis.level.LevelType;
 import org.ta4j.core.analysis.level.SupportResistanceCalculator;
 import org.ta4j.core.analysis.level.Tuple;
 import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.candles.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.pivotpoints.FibonacciReversalIndicator;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import org.ta4j.core.indicators.pivotpoints.TimeLevel;
+import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
@@ -128,6 +130,17 @@ public class BuyAndSellSignalsToCandlestickChart {
         final StandardXYItemRenderer vixRenderer = new StandardXYItemRenderer();
         vixRenderer.setSeriesPaint(0, Color.blue);
         plot.setRenderer(1, vixRenderer);
+    }
+
+    private static void addChannels(TimeSeries series, JFreeChart chart) {
+        TrendChannelIndicator indicator = new TrendChannelIndicator(series, 80);
+
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+
+            indicator.getValue(i);
+        }
+        ChartBuilder.addTrendChannel(chart, indicator);
     }
 
     /**
@@ -354,15 +367,15 @@ public class BuyAndSellSignalsToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
+        String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
                 "?range=2d&interval=5m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";*/
+        String title = "Bitcoin";
 
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
+        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
                 "?range=2d&interval=1m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";
+        String title = "S&P500";*/
 
         plotSymbol(url, title);
     }
@@ -437,6 +450,8 @@ public class BuyAndSellSignalsToCandlestickChart {
 
         //addSupportAndResistance(series, plot);
 
+        addChannels(series, chart);
+
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
 
@@ -452,10 +467,10 @@ public class BuyAndSellSignalsToCandlestickChart {
         Map<Strategy, Order.OrderType> strategies = new HashMap<>();
         //strategies.put(vixStrategy, Order.OrderType.SELL);
         strategies.put(rsiStrategy, Order.OrderType.BUY);
-        strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
-        strategies.put(cciStrategy, Order.OrderType.BUY);
+        //strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
+        //strategies.put(cciStrategy, Order.OrderType.BUY);
 
-        //addBuySellSignals(series, plot, strategies);
+        addBuySellSignals(series, plot, strategies);
 
         /*
           Checking all indicators and marking areas to plot

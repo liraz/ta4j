@@ -1,7 +1,7 @@
-package ta4jexamples.api.yahoo;
+package org.ta4j.core.api.yahoo;
 
-import ta4jexamples.api.yahoo.result.YahooResultIndicators;
-import ta4jexamples.api.yahoo.result.YahooResultMeta;
+import org.ta4j.core.api.yahoo.result.YahooResultIndicators;
+import org.ta4j.core.api.yahoo.result.YahooResultMeta;
 
 import java.util.List;
 

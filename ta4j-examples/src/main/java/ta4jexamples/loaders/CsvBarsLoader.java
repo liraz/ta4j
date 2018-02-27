@@ -31,7 +31,6 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,10 +42,10 @@ import org.ta4j.core.BaseTimeSeries;
 import org.ta4j.core.TimeSeries;
 
 import com.opencsv.CSVReader;
-import ta4jexamples.api.yahoo.YahooApiResponse;
-import ta4jexamples.api.yahoo.YahooChartResponse;
-import ta4jexamples.api.yahoo.YahooChartResponseResult;
-import ta4jexamples.api.yahoo.result.indicator.YahooIndicatorQuote;
+import org.ta4j.core.api.yahoo.YahooApiResponse;
+import org.ta4j.core.api.yahoo.YahooChartResponse;
+import org.ta4j.core.api.yahoo.YahooChartResponseResult;
+import org.ta4j.core.api.yahoo.result.indicator.YahooIndicatorQuote;
 
 /**
  * This class build a Ta4j time series from a CSV file containing bars.
