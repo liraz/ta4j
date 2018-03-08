@@ -85,7 +85,6 @@ public class TrendChannelIndicator extends CachedIndicator<Decimal> {
 
     private void fillIndicator(int startIndex, int endIndex) {
         for (int i = startIndex; i < endIndex; i++) {
-            Bar bar = series.getBar(i);
             calculate(i);
         }
     }
@@ -184,7 +183,7 @@ public class TrendChannelIndicator extends CachedIndicator<Decimal> {
     }
 
     public double getUpperPrice(long millis) {
-        return getMainTrendLine().getYForX(millis)+getChannelRadius();
+        return getMainTrendLine().getYForX(millis) + getChannelRadius();
     }
 
     public double getLowerPrice(long millis) {

@@ -49,6 +49,7 @@ import org.ta4j.core.analysis.level.SupportResistanceCalculator;
 import org.ta4j.core.analysis.level.Tuple;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.TrendChannelIndicator;
+import org.ta4j.core.indicators.TrendChannelsCollection;
 import org.ta4j.core.indicators.candles.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.pivotpoints.FibonacciReversalIndicator;
@@ -133,14 +134,10 @@ public class BuyAndSellSignalsToCandlestickChart {
     }
 
     private static void addChannels(TimeSeries series, JFreeChart chart) {
-        TrendChannelIndicator indicator = new TrendChannelIndicator(series, 80);
-
-        for (int i = 0; i < series.getBarCount(); i++) {
-            Bar bar = series.getBar(i);
-
-            indicator.getValue(i);
+        TrendChannelsCollection collection = new TrendChannelsCollection(series, 5);
+        for (TrendChannelIndicator trendChannelIndicator : collection.getIndicators()) {
+            ChartBuilder.addTrendChannel(chart, trendChannelIndicator);
         }
-        ChartBuilder.addTrendChannel(chart, indicator);
     }
 
     /**

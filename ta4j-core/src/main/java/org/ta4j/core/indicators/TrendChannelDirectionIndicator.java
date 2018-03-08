@@ -38,22 +38,26 @@ import java.util.List;
 public class TrendChannelDirectionIndicator extends RecursiveCachedIndicator<Decimal> {
 
     private final TimeSeries series;
+    private final int numberOfConfirmation;
 
-    private Bar lastCandle;
     private int direction;
     private int lastDirection;
 
+    private List<Bar> lastCandles;
     private List<Bar> directionCandles;
 
     /**
      * Indicating the direction of the channel
      *
      * @param series
+     * @param numberOfConfirmation
      */
-    public TrendChannelDirectionIndicator(TimeSeries series) {
+    public TrendChannelDirectionIndicator(TimeSeries series, int numberOfConfirmation) {
         super(series);
         this.series = series;
+        this.numberOfConfirmation = numberOfConfirmation;
 
+        this.lastCandles = new ArrayList<>();
         this.directionCandles = new ArrayList<>();
     }
 
@@ -68,14 +72,24 @@ public class TrendChannelDirectionIndicator extends RecursiveCachedIndicator<Dec
         Bar candle = series.getBar(index);
 
         //define direction
-        if (lastCandle != null) {
-            if (candle.getClosePrice().floatValue() > lastCandle.getClosePrice().floatValue()) {
+        if (lastCandles.size() > 0) {
+            // last confirmation cnadles, instead of just one lastCandle
+			// this will ensure direction change is ignoring false channel signals
+            boolean lastCandlesPriceIsLower = true;
+            boolean lastCandlesPriceIsHigher = true;
+
+			for (Bar lastCandle : lastCandles) {
+				lastCandlesPriceIsLower = lastCandlesPriceIsLower && candle.getClosePrice().floatValue() > lastCandle.getClosePrice().floatValue();
+				lastCandlesPriceIsHigher = lastCandlesPriceIsHigher && candle.getClosePrice().floatValue() < lastCandle.getClosePrice().floatValue();
+			}
+
+			if (lastCandlesPriceIsLower) {
                 if (direction > 0) {
                     direction++;
                 } else {
                     direction = 1;
                 }
-            } else if (candle.getClosePrice().floatValue() < lastCandle.getClosePrice().floatValue()) {
+            } else if (lastCandlesPriceIsHigher) {
                 if (direction < 0) {
                     direction--;
                 } else {
@@ -91,7 +105,12 @@ public class TrendChannelDirectionIndicator extends RecursiveCachedIndicator<Dec
         }
         directionCandles.add(candle);
 
-        lastCandle = candle;
+        // saving the last confirmation candles
+        int lastStartIndex = Math.max(0, index - numberOfConfirmation);
+        for (int i = lastStartIndex; i <= index; i++) {
+            Bar lastCandle = series.getBar(i);
+            lastCandles.add(lastCandle);
+        }
         lastDirection = direction;
 
         return Decimal.valueOf(direction);
