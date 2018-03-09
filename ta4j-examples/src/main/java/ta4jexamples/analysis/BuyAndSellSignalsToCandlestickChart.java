@@ -134,7 +134,7 @@ public class BuyAndSellSignalsToCandlestickChart {
     }
 
     private static void addChannels(TimeSeries series, JFreeChart chart) {
-        TrendChannelsCollection collection = new TrendChannelsCollection(series, 5);
+        TrendChannelsCollection collection = new TrendChannelsCollection(series, 30);
         for (TrendChannelIndicator trendChannelIndicator : collection.getIndicators()) {
             ChartBuilder.addTrendChannel(chart, trendChannelIndicator);
         }
@@ -274,7 +274,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         List<Level> supportLevels = Lists.newArrayList();
         List<Level> resistanceLevels = Lists.newArrayList();
 
-        float delta = 6.0f; // delta used for distinguishing peaks
+        float delta = 180.f; // delta used for distinguishing peaks
 
         int mxPos = 0;
         int mnPos = 0;
@@ -445,8 +445,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         //addVixAxis(plot, vixDataset);
         //addVixAxis(plot, pivotDataset);
 
-        //addSupportAndResistance(series, plot);
-
+        addSupportAndResistance(series, plot);
         addChannels(series, chart);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
@@ -467,7 +466,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         //strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
         //strategies.put(cciStrategy, Order.OrderType.BUY);
 
-        addBuySellSignals(series, plot, strategies);
+        //addBuySellSignals(series, plot, strategies);
 
         /*
           Checking all indicators and marking areas to plot
