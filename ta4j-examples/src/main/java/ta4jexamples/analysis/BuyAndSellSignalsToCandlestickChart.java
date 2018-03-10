@@ -263,7 +263,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         return dataset;
     }
 
-    private static void addSupportAndResistance(TimeSeries series, XYPlot plot) {
+    private static void addSupportAndResistance(TimeSeries series, XYPlot plot, boolean drawBreakSignals) {
         // Running the strategy
         /*SupportResistanceCalculator calculator = new SupportResistanceCalculator();
         Tuple<List<Level>, List<Level>> levels = calculator.identify(series, series.getBarCount() / 10);
@@ -274,19 +274,36 @@ public class BuyAndSellSignalsToCandlestickChart {
         List<Level> supportLevels = Lists.newArrayList();
         List<Level> resistanceLevels = Lists.newArrayList();
 
-        float delta = 180.f; // delta used for distinguishing peaks
-
         int mxPos = 0;
         int mnPos = 0;
 
-        Bar firstBar = series.getBar(0);
+        Bar firstBar = series.getFirstBar();
+        Bar lastBar = series.getLastBar();
         float mx = firstBar.getClosePrice().floatValue();
         float mn = firstBar.getClosePrice().floatValue();
 
+        float lowestClosePrice = firstBar.getClosePrice().floatValue();
+        float highestClosePrice = lastBar.getClosePrice().floatValue();
+
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+
+            lowestClosePrice = Math.min(bar.getClosePrice().floatValue(), lowestClosePrice);
+            highestClosePrice = Math.max(bar.getClosePrice().floatValue(), highestClosePrice);
+        }
+
+        //float delta = 180.f; // delta used for distinguishing peaks
+        float delta = (highestClosePrice - lowestClosePrice) / 10; // delta used for distinguishing peaks
+
         boolean isDetectingEmi = false; // should we search emission peak first of absorption peak first?
+        int confirmationForSignal = 5;
+
+        Level lastResistanceLevel = null;
+        Level lastSupportLevel = null;
 
         for(int i = 1; i < series.getBarCount(); ++i) {
             Bar bar = series.getBar(i);
+
             float closePrice = bar.getClosePrice().floatValue();
 
             if (closePrice > mx) {
@@ -299,7 +316,8 @@ public class BuyAndSellSignalsToCandlestickChart {
             }
 
             if(isDetectingEmi && closePrice < mx - delta) {
-                resistanceLevels.add(new Level(LevelType.RESISTANCE, mx, mx));
+                lastResistanceLevel = new Level(LevelType.RESISTANCE, mx, mx);
+                resistanceLevels.add(lastResistanceLevel);
 
                 isDetectingEmi = false;
 
@@ -309,7 +327,8 @@ public class BuyAndSellSignalsToCandlestickChart {
                 mnPos = mxPos;
             }
             else if(!isDetectingEmi && closePrice > mn + delta) {
-                supportLevels.add(new Level(LevelType.SUPPORT, mn, mn));
+                lastSupportLevel = new Level(LevelType.SUPPORT, mn, mn);
+                supportLevels.add(lastSupportLevel);
 
                 isDetectingEmi = true;
 
@@ -317,6 +336,54 @@ public class BuyAndSellSignalsToCandlestickChart {
 
                 mx = series.getBar(mnPos).getClosePrice().floatValue();
                 mxPos = mnPos;
+            }
+
+            if(i > confirmationForSignal - 1 && drawBreakSignals) { // we need three candles back at least
+
+                boolean hasBearishConfirmation = true;
+                boolean hasBullishConfirmation = true;
+
+                for (int j = i - confirmationForSignal; j < i; j++) {
+                    hasBearishConfirmation = hasBearishConfirmation && series.getBar(j).isBearish();
+                    hasBullishConfirmation = hasBullishConfirmation && series.getBar(j).isBullish();
+                }
+
+                if (hasBearishConfirmation && lastSupportLevel != null) {
+                    // check if price broke support
+                    //TODO: condition needs to get better - this doesn't consider a change of trend, future breaks should not be counted
+
+                    //TODO: 1. find the first time the support got broken
+                    //TODO: 2. set how much candles will be tested until a break is completely confirmed
+                    //TODO: 3. mark the support line as broken, and do not consider it anymore (probably this is what i am missing here)
+                    boolean brokeSupportBarier = closePrice < lastSupportLevel.getLevel();
+
+                    if(brokeSupportBarier) {
+                        // Broke support signal
+                        double supportBreakSignalBarTime = new Minute(Date.from(bar.getEndTime().toInstant())).getFirstMillisecond();
+                        Marker supportBreakMarker = new ValueMarker(supportBreakSignalBarTime);
+                        supportBreakMarker.setPaint(Color.RED);
+                        supportBreakMarker.setLabel("BS");
+                        supportBreakMarker.setStroke(new BasicStroke(1));
+                        plot.addDomainMarker(supportBreakMarker);
+                        break;
+                    }
+                }
+
+                if (hasBullishConfirmation && lastResistanceLevel != null) {
+                    // check if price broke resistance
+                    //TODO: condition needs to get better - this doesn't consider a change of trend, future breaks should not be counted
+                    boolean brokeResistanceBarier = closePrice > lastResistanceLevel.getLevel();
+
+                    if(brokeResistanceBarier) {
+                        // Broke resistance signal
+                        double resistanceBreakSignalBarTime = new Minute(Date.from(bar.getEndTime().toInstant())).getFirstMillisecond();
+                        Marker resistanceBreakMarker = new ValueMarker(resistanceBreakSignalBarTime);
+                        resistanceBreakMarker.setPaint(Color.GREEN);
+                        resistanceBreakMarker.setLabel("BR");
+                        resistanceBreakMarker.setStroke(new BasicStroke(1));
+                        plot.addDomainMarker(resistanceBreakMarker);
+                    }
+                }
             }
         }
 
@@ -365,12 +432,12 @@ public class BuyAndSellSignalsToCandlestickChart {
 
     public static void main(String[] args) {
         String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
-                "?range=2d&interval=5m&indicators=quote" +
+                "?range=3d&interval=5m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
         String title = "Bitcoin";
 
         /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
-                "?range=2d&interval=1m&indicators=quote" +
+                "?range=2d&interval=5m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
         String title = "S&P500";*/
 
@@ -445,7 +512,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         //addVixAxis(plot, vixDataset);
         //addVixAxis(plot, pivotDataset);
 
-        addSupportAndResistance(series, plot);
+        addSupportAndResistance(series, plot, true);
         addChannels(series, chart);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
