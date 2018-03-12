@@ -20,11 +20,12 @@
   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package ta4jexamples.analysis;
+package ta4jexamples.indicators;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYBoxAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.DatasetRenderingOrder;
@@ -33,32 +34,48 @@ import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
-import org.ta4j.core.Order;
-import org.ta4j.core.Strategy;
+import org.ta4j.core.Decimal;
+import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
-import org.ta4j.core.indicators.TrendChannelIndicator;
-import org.ta4j.core.indicators.TrendChannelsCollection;
+import org.ta4j.core.indicators.candles.*;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
-import ta4jexamples.strategies.CCICorrectionStrategy;
-import ta4jexamples.strategies.MovingMomentumStrategy;
-import ta4jexamples.strategies.RSI2Strategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
  */
-public class BuyAndSellSignalsToCandlestickChart {
+public class CandleIndicatorsToCandlestickChart {
 
-    private static void addChannels(TimeSeries series, JFreeChart chart) {
-        TrendChannelsCollection collection = new TrendChannelsCollection(series, 30);
-        for (TrendChannelIndicator trendChannelIndicator : collection.getIndicators()) {
-            ChartBuilder.addTrendChannel(chart, trendChannelIndicator);
-        }
+    private static void addCandlesIndicators(TimeSeries series, XYPlot plot, Indicator ...indicators) {
+
+
+
+        XYBoxAnnotation boxAnnotation = new XYBoxAnnotation(100, 100, 50, 50,
+                new BasicStroke(2), Color.BLACK);
+        boxAnnotation.setToolTipText( "TOOLTIP" );
+        plot.addAnnotation( boxAnnotation );
+    }
+
+    /**
+     * Displays a chart in a frame.
+     * @param chart the chart to be displayed
+     */
+    private static void displayChart(JFreeChart chart) {
+        // Chart panel
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setFillZoomRectangle(true);
+        panel.setMouseWheelEnabled(true);
+        panel.setPreferredSize(new Dimension(1136, 700));
+
+        // Application frame
+        ApplicationFrame frame = new ApplicationFrame("Candle indicators to chart");
+        frame.setContentPane(panel);
+        frame.pack();
+        RefineryUtilities.centerFrameOnScreen(frame);
+        frame.setVisible(true);
     }
 
     public static void main(String[] args) {
@@ -67,11 +84,6 @@ public class BuyAndSellSignalsToCandlestickChart {
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
         String title = "Bitcoin";
 
-        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
-                "?range=2d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";*/
-
         plotSymbol(url, title);
     }
 
@@ -79,12 +91,16 @@ public class BuyAndSellSignalsToCandlestickChart {
         // Getting the time series
         TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
 
-        //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
-
-        // Building the trading strategy
-        Strategy movingMomentumStrategy = MovingMomentumStrategy.buildStrategy(series); // this one is very safe
-        Strategy rsiStrategy = RSI2Strategy.buildStrategy(series);
-        Strategy cciStrategy = CCICorrectionStrategy.buildStrategy(series); // this one is risky
+        // adding indicators for candles (drawing rectangle over indicator)
+        BearishEngulfingIndicator bearishEngulfingIndicator = new BearishEngulfingIndicator(series);
+        BearishHaramiIndicator bearishHaramiIndicator = new BearishHaramiIndicator(series);
+        BullishEngulfingIndicator bullishEngulfingIndicator = new BullishEngulfingIndicator(series);
+        BullishHaramiIndicator bullishHaramiIndicator = new BullishHaramiIndicator(series);
+        LowerShadowIndicator lowerShadowIndicator = new LowerShadowIndicator(series);
+        RealBodyIndicator realBodyIndicator = new RealBodyIndicator(series);
+        ThreeBlackCrowsIndicator threeBlackCrowsIndicator = new ThreeBlackCrowsIndicator(series, 3, Decimal.valueOf("0.1"));
+        ThreeWhiteSoldiersIndicator threeWhiteSoldiersIndicator = new ThreeWhiteSoldiersIndicator(series, 3, Decimal.valueOf("0.1"));
+        UpperShadowIndicator upperShadowIndicator = new UpperShadowIndicator(series);
 
         /*
           Creating the OHLC dataset
@@ -114,8 +130,6 @@ public class BuyAndSellSignalsToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addChannels(series, chart);
-
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
 
@@ -126,19 +140,16 @@ public class BuyAndSellSignalsToCandlestickChart {
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 
         /*
-          Running the strategy and adding the buy and sell signals to plot
+          Checking all indicators and marking areas to plot
          */
-        Map<Strategy, Order.OrderType> strategies = new HashMap<>();
-        //strategies.put(vixStrategy, Order.OrderType.SELL);
-        //strategies.put(rsiStrategy, Order.OrderType.BUY);
-        strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
-        //strategies.put(cciStrategy, Order.OrderType.SELL);
-
-        ChartBuilder.addBuySellSignals(series, plot, strategies);
+        addCandlesIndicators(series, plot, bearishEngulfingIndicator, bearishHaramiIndicator,
+                bullishEngulfingIndicator, bullishHaramiIndicator, lowerShadowIndicator,
+                realBodyIndicator, threeBlackCrowsIndicator, threeWhiteSoldiersIndicator,
+                upperShadowIndicator);
 
         /*
           Displaying the chart
          */
-        ChartBuilder.displayChart(chart, "Prediction - Buy and sell signals to chart");
+        displayChart(chart);
     }
 }

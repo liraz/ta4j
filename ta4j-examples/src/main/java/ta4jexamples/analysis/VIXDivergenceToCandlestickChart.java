@@ -28,49 +28,64 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.DatasetRenderingOrder;
+import org.jfree.chart.plot.Marker;
+import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
+import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
+import org.jfree.data.time.Minute;
+import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.data.xy.DefaultHighLowDataset;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
-import org.ta4j.core.Order;
-import org.ta4j.core.Strategy;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.*;
 import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.TrendChannelsCollection;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
 import ta4jexamples.strategies.RSI2Strategy;
+import ta4jexamples.strategies.VixStrategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
  */
-public class BuyAndSellSignalsToCandlestickChart {
+public class VIXDivergenceToCandlestickChart {
 
-    private static void addChannels(TimeSeries series, JFreeChart chart) {
-        TrendChannelsCollection collection = new TrendChannelsCollection(series, 30);
-        for (TrendChannelIndicator trendChannelIndicator : collection.getIndicators()) {
-            ChartBuilder.addTrendChannel(chart, trendChannelIndicator);
-        }
+    /**
+     * Displays a chart in a frame.
+     * @param chart the chart to be displayed
+     */
+    private static void displayChart(JFreeChart chart) {
+        // Chart panel
+        ChartPanel panel = new ChartPanel(chart);
+        panel.setFillZoomRectangle(true);
+        panel.setMouseWheelEnabled(true);
+        panel.setPreferredSize(new Dimension(1136, 700));
+
+        // Application frame
+        ApplicationFrame frame = new ApplicationFrame("VIX divergence to chart");
+        frame.setContentPane(panel);
+        frame.pack();
+        RefineryUtilities.centerFrameOnScreen(frame);
+        frame.setVisible(true);
     }
 
     public static void main(String[] args) {
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
-                "?range=3d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";
-
-        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
+        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
                 "?range=2d&interval=5m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";*/
+        String title = "S&P500";
 
         plotSymbol(url, title);
     }
@@ -78,18 +93,21 @@ public class BuyAndSellSignalsToCandlestickChart {
     private static void plotSymbol(String url, String title) {
         // Getting the time series
         TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
-
-        //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
+        //TODO: Loading the VIX from yahoo
+        TimeSeries vixSeries = CsvBarsLoader.loadVIXSeries();
 
         // Building the trading strategy
-        Strategy movingMomentumStrategy = MovingMomentumStrategy.buildStrategy(series); // this one is very safe
-        Strategy rsiStrategy = RSI2Strategy.buildStrategy(series);
-        Strategy cciStrategy = CCICorrectionStrategy.buildStrategy(series); // this one is risky
+        Strategy vixStrategy = VixStrategy.buildStrategy(vixSeries, series);
 
         /*
           Creating the OHLC dataset
          */
         OHLCDataset dataset = ChartBuilder.buildChartCandlestickDataset(series, title);
+
+        /*
+          Creating the additional dataset
+         */
+        TimeSeriesCollection vixDataset = ChartBuilder.createDataset(vixSeries, "VIX");
 
         /*
           Creating the chart
@@ -114,7 +132,8 @@ public class BuyAndSellSignalsToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addChannels(series, chart);
+        // Additional dataset
+        ChartBuilder.addAxis(plot, vixDataset, "VIX", Color.blue);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
@@ -129,16 +148,13 @@ public class BuyAndSellSignalsToCandlestickChart {
           Running the strategy and adding the buy and sell signals to plot
          */
         Map<Strategy, Order.OrderType> strategies = new HashMap<>();
-        //strategies.put(vixStrategy, Order.OrderType.SELL);
-        //strategies.put(rsiStrategy, Order.OrderType.BUY);
-        strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
-        //strategies.put(cciStrategy, Order.OrderType.SELL);
+        strategies.put(vixStrategy, Order.OrderType.SELL);
 
         ChartBuilder.addBuySellSignals(series, plot, strategies);
 
         /*
           Displaying the chart
          */
-        ChartBuilder.displayChart(chart, "Prediction - Buy and sell signals to chart");
+        displayChart(chart);
     }
 }
