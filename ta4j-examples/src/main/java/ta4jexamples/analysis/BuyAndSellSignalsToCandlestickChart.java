@@ -43,10 +43,6 @@ import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
-import org.ta4j.core.analysis.level.Level;
-import org.ta4j.core.analysis.level.LevelType;
-import org.ta4j.core.analysis.level.SupportResistanceCalculator;
-import org.ta4j.core.analysis.level.Tuple;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.TrendChannelsCollection;
@@ -181,98 +177,11 @@ public class BuyAndSellSignalsToCandlestickChart {
         }
     }
 
-
-    private static TimeSeriesCollection addPivotPointIndicator(TimeSeries series) {
-        PivotPointIndicator pp = new PivotPointIndicator(series, TimeLevel.BARBASED);
-
-        StandardReversalIndicator s1 = new StandardReversalIndicator(pp, SUPPORT_1);
-        StandardReversalIndicator s2 = new StandardReversalIndicator(pp, SUPPORT_2);
-        StandardReversalIndicator s3 = new StandardReversalIndicator(pp, SUPPORT_3);
-        StandardReversalIndicator r1 = new StandardReversalIndicator(pp, RESISTANCE_1);
-        StandardReversalIndicator r2 = new StandardReversalIndicator(pp, RESISTANCE_2);
-        StandardReversalIndicator r3 = new StandardReversalIndicator(pp, RESISTANCE_3);
-
-        FibonacciReversalIndicator fibR3 = new FibonacciReversalIndicator(pp, Decimal.ONE, FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
-        FibonacciReversalIndicator fibR2 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.618), FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
-        FibonacciReversalIndicator fibR1 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.382), FibonacciReversalIndicator.FibReversalTyp.RESISTANCE);
-        FibonacciReversalIndicator fibS1 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.382), FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
-        FibonacciReversalIndicator fibS2 = new FibonacciReversalIndicator(pp, Decimal.valueOf(0.618), FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
-        FibonacciReversalIndicator fibS3 = new FibonacciReversalIndicator(pp, Decimal.ONE, FibonacciReversalIndicator.FibReversalTyp.SUPPORT);
-
-        TimeSeriesCollection dataset = new TimeSeriesCollection();
-
-        org.jfree.data.time.TimeSeries s1TimeSeries = new org.jfree.data.time.TimeSeries("S1");
-        org.jfree.data.time.TimeSeries s2TimeSeries = new org.jfree.data.time.TimeSeries("S2");
-        org.jfree.data.time.TimeSeries s3TimeSeries = new org.jfree.data.time.TimeSeries("S3");
-        org.jfree.data.time.TimeSeries r1TimeSeries = new org.jfree.data.time.TimeSeries("R1");
-        org.jfree.data.time.TimeSeries r2TimeSeries = new org.jfree.data.time.TimeSeries("R2");
-        org.jfree.data.time.TimeSeries r3TimeSeries = new org.jfree.data.time.TimeSeries("R3");
-
-        org.jfree.data.time.TimeSeries fibS1TimeSeries = new org.jfree.data.time.TimeSeries("Fib S1");
-        org.jfree.data.time.TimeSeries fibS2TimeSeries = new org.jfree.data.time.TimeSeries("Fib S2");
-        org.jfree.data.time.TimeSeries fibS3TimeSeries = new org.jfree.data.time.TimeSeries("Fib S3");
-        org.jfree.data.time.TimeSeries fibR1TimeSeries = new org.jfree.data.time.TimeSeries("Fib R1");
-        org.jfree.data.time.TimeSeries fibR2TimeSeries = new org.jfree.data.time.TimeSeries("Fib R2");
-        org.jfree.data.time.TimeSeries fibR3TimeSeries = new org.jfree.data.time.TimeSeries("Fib R3");
-
-        for (int i = 0; i < series.getBarCount(); i++) {
-            Bar bar = series.getBar(i);
-
-            Minute period = new Minute(new Date(bar.getEndTime().toEpochSecond() * 1000));
-            s1TimeSeries.add(period,
-                    s1.getValue(i).toDouble());
-            s2TimeSeries.add(period,
-                    s2.getValue(i).toDouble());
-            s3TimeSeries.add(period,
-                    s3.getValue(i).toDouble());
-
-            r1TimeSeries.add(period,
-                    r1.getValue(i).toDouble());
-            r2TimeSeries.add(period,
-                    r2.getValue(i).toDouble());
-            r3TimeSeries.add(period,
-                    r3.getValue(i).toDouble());
-
-            fibR1TimeSeries.add(period,
-                    fibR1.getValue(i).toDouble());
-            fibR2TimeSeries.add(period,
-                    fibR2.getValue(i).toDouble());
-            fibR3TimeSeries.add(period,
-                    fibR3.getValue(i).toDouble());
-
-            fibS1TimeSeries.add(period,
-                    fibS1.getValue(i).toDouble());
-            fibS2TimeSeries.add(period,
-                    fibS2.getValue(i).toDouble());
-            fibS3TimeSeries.add(period,
-                    fibS3.getValue(i).toDouble());
-        }
-        dataset.addSeries(s1TimeSeries);
-        dataset.addSeries(s2TimeSeries);
-        dataset.addSeries(s3TimeSeries);
-        dataset.addSeries(r1TimeSeries);
-        dataset.addSeries(r2TimeSeries);
-        dataset.addSeries(r3TimeSeries);
-        dataset.addSeries(fibR1TimeSeries);
-        dataset.addSeries(fibR2TimeSeries);
-        dataset.addSeries(fibR3TimeSeries);
-        dataset.addSeries(fibS1TimeSeries);
-        dataset.addSeries(fibS2TimeSeries);
-        dataset.addSeries(fibS3TimeSeries);
-
-        return dataset;
-    }
-
     private static void addSupportAndResistance(TimeSeries series, XYPlot plot, boolean drawBreakSignals) {
-        // Running the strategy
-        /*SupportResistanceCalculator calculator = new SupportResistanceCalculator();
-        Tuple<List<Level>, List<Level>> levels = calculator.identify(series, series.getBarCount() / 10);
 
-        List<Level> supportLevels = levels.getA();
-        List<Level> resistanceLevels = levels.getB();*/
-
-        List<Level> supportLevels = Lists.newArrayList();
-        List<Level> resistanceLevels = Lists.newArrayList();
+        // Level => count - count = number of times level was reached
+        Map<Float, Integer> supportLevels = new HashMap<>();
+        Map<Float, Integer> resistanceLevels = new HashMap<>();
 
         int mxPos = 0;
         int mnPos = 0;
@@ -292,32 +201,39 @@ public class BuyAndSellSignalsToCandlestickChart {
             highestClosePrice = Math.max(bar.getClosePrice().floatValue(), highestClosePrice);
         }
 
-        //float delta = 180.f; // delta used for distinguishing peaks
-        float delta = (highestClosePrice - lowestClosePrice) / 10; // delta used for distinguishing peaks
+        float delta = (highestClosePrice - lowestClosePrice) / 180; // delta used for distinguishing peaks
 
         boolean isDetectingEmi = false; // should we search emission peak first of absorption peak first?
         int confirmationForSignal = 5;
 
-        Level lastResistanceLevel = null;
-        Level lastSupportLevel = null;
+        Float lastResistanceLevel = null;
+        Float lastSupportLevel = null;
 
         for(int i = 1; i < series.getBarCount(); ++i) {
             Bar bar = series.getBar(i);
 
-            float closePrice = bar.getClosePrice().floatValue();
+            float maxPrice = bar.getMaxPrice().floatValue();
+            float minPrice = bar.getMinPrice().floatValue();
 
-            if (closePrice > mx) {
+            if (maxPrice > mx) {
                 mxPos = i;
-                mx = closePrice;
+                mx = maxPrice;
             }
-            if (closePrice < mn) {
+            if (minPrice < mn) {
                 mnPos = i;
-                mn = closePrice;
+                mn = minPrice;
             }
 
-            if(isDetectingEmi && closePrice < mx - delta) {
-                lastResistanceLevel = new Level(LevelType.RESISTANCE, mx, mx);
-                resistanceLevels.add(lastResistanceLevel);
+            if(isDetectingEmi && maxPrice < mx - delta) {
+                lastResistanceLevel = mx;
+
+                // just increment the level count
+                if(resistanceLevels.containsKey(lastResistanceLevel)) {
+                    int count = resistanceLevels.get(lastResistanceLevel);
+                    resistanceLevels.put(lastResistanceLevel, count + 1);
+                } else { // add the level and a count of 1
+                    resistanceLevels.put(lastResistanceLevel, 1);
+                }
 
                 isDetectingEmi = false;
 
@@ -326,9 +242,16 @@ public class BuyAndSellSignalsToCandlestickChart {
                 mn = series.getBar(mxPos).getClosePrice().floatValue();
                 mnPos = mxPos;
             }
-            else if(!isDetectingEmi && closePrice > mn + delta) {
-                lastSupportLevel = new Level(LevelType.SUPPORT, mn, mn);
-                supportLevels.add(lastSupportLevel);
+            else if(!isDetectingEmi && minPrice > mn + delta) {
+                lastSupportLevel = mn;
+
+                // just increment the level count
+                if(supportLevels.containsKey(lastSupportLevel)) {
+                    int count = supportLevels.get(lastSupportLevel);
+                    supportLevels.put(lastSupportLevel, count + 1);
+                } else { // add the level and a count of 1
+                    supportLevels.put(lastSupportLevel, 1);
+                }
 
                 isDetectingEmi = true;
 
@@ -338,7 +261,7 @@ public class BuyAndSellSignalsToCandlestickChart {
                 mxPos = mnPos;
             }
 
-            if(i > confirmationForSignal - 1 && drawBreakSignals) { // we need three candles back at least
+            if(i > confirmationForSignal - 1 && drawBreakSignals) {
 
                 boolean hasBearishConfirmation = true;
                 boolean hasBullishConfirmation = true;
@@ -355,7 +278,7 @@ public class BuyAndSellSignalsToCandlestickChart {
                     //TODO: 1. find the first time the support got broken
                     //TODO: 2. set how much candles will be tested until a break is completely confirmed
                     //TODO: 3. mark the support line as broken, and do not consider it anymore (probably this is what i am missing here)
-                    boolean brokeSupportBarier = closePrice < lastSupportLevel.getLevel();
+                    boolean brokeSupportBarier = minPrice < lastSupportLevel;
 
                     if(brokeSupportBarier) {
                         // Broke support signal
@@ -369,10 +292,9 @@ public class BuyAndSellSignalsToCandlestickChart {
                     }
                 }
 
-                if (hasBullishConfirmation && lastResistanceLevel != null) {
+                /*if (hasBullishConfirmation && lastResistanceLevel != null) {
                     // check if price broke resistance
-                    //TODO: condition needs to get better - this doesn't consider a change of trend, future breaks should not be counted
-                    boolean brokeResistanceBarier = closePrice > lastResistanceLevel.getLevel();
+                    boolean brokeResistanceBarier = maxPrice > lastResistanceLevel.getLevel();
 
                     if(brokeResistanceBarier) {
                         // Broke resistance signal
@@ -383,22 +305,32 @@ public class BuyAndSellSignalsToCandlestickChart {
                         resistanceBreakMarker.setStroke(new BasicStroke(1));
                         plot.addDomainMarker(resistanceBreakMarker);
                     }
-                }
+                }*/
             }
         }
 
-        for (Level supportLevel : supportLevels) {
-            Marker supportMarker = new ValueMarker(supportLevel.getLevel());
-            supportMarker.setPaint(Color.GREEN.darker());
-            supportMarker.setStroke(new BasicStroke(1));
-            plot.addRangeMarker(supportMarker);
+        for (Map.Entry<Float, Integer> supportLevelEntries : supportLevels.entrySet()) {
+            Integer count = supportLevelEntries.getValue();
+            Float level = supportLevelEntries.getKey();
+
+            if(count > 1) {
+                Marker supportMarker = new ValueMarker(level);
+                supportMarker.setPaint(Color.GREEN.darker());
+                supportMarker.setStroke(new BasicStroke(1));
+                plot.addRangeMarker(supportMarker);
+            }
         }
 
-        for (Level resistanceLevel : resistanceLevels) {
-            Marker resistanceMarker = new ValueMarker(resistanceLevel.getLevel());
-            resistanceMarker.setPaint(Color.RED.darker());
-            resistanceMarker.setStroke(new BasicStroke(1));
-            plot.addRangeMarker(resistanceMarker);
+        for (Map.Entry<Float, Integer> resistanceLevelEntries : resistanceLevels.entrySet()) {
+            Integer count = resistanceLevelEntries.getValue();
+            Float level = resistanceLevelEntries.getKey();
+
+            if(count > 1) {
+                Marker resistanceMarker = new ValueMarker(level);
+                resistanceMarker.setPaint(Color.RED.darker());
+                resistanceMarker.setStroke(new BasicStroke(1));
+                plot.addRangeMarker(resistanceMarker);
+            }
         }
     }
 
@@ -512,7 +444,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         //addVixAxis(plot, vixDataset);
         //addVixAxis(plot, pivotDataset);
 
-        addSupportAndResistance(series, plot, true);
+        addSupportAndResistance(series, plot, false);
         addChannels(series, chart);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();

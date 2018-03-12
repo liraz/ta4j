@@ -138,7 +138,6 @@ public class CsvBarsLoader {
         } catch (IOException e) {
             Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", e);
         }
-        Collections.reverse(bars);
 
         return new BaseTimeSeries("url_bars", bars);
     }
