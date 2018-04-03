@@ -37,17 +37,9 @@ import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Bar;
-import org.ta4j.core.Order;
-import org.ta4j.core.Strategy;
 import org.ta4j.core.TimeSeries;
-import org.ta4j.core.indicators.TrendChannelIndicator;
-import org.ta4j.core.indicators.TrendChannelsCollection;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
-import ta4jexamples.strategies.CCICorrectionStrategy;
-import ta4jexamples.strategies.MovingMomentumStrategy;
-import ta4jexamples.strategies.RSI2Strategy;
-import ta4jexamples.strategies.VixStrategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -60,8 +52,122 @@ import java.util.Map;
  */
 public class SupportAndResistanceToCandlestickChart {
 
-    private static void addSupportAndResistance(TimeSeries series, XYPlot plot, boolean drawBreakSignals) {
+    private static void addSupportAndResistance(TimeSeries series, XYPlot plot) {
+        //TODO: follow the following stackoverflow answer for the best result
+        //TODO: https://stackoverflow.com/a/49274744
+    }
 
+    private static void oldAddSupportAndResistance(TimeSeries series, XYPlot plot) {
+
+        // Level => count - count = number of times level was reached
+        Map<Float, Integer> supportLevels = new HashMap<>();
+        Map<Float, Integer> resistanceLevels = new HashMap<>();
+
+        int mxPos = 0;
+        int mnPos = 0;
+
+        Bar firstBar = series.getFirstBar();
+        Bar lastBar = series.getLastBar();
+        float mx = firstBar.getClosePrice().floatValue();
+        float mn = firstBar.getClosePrice().floatValue();
+
+        float lowestClosePrice = firstBar.getClosePrice().floatValue();
+        float highestClosePrice = lastBar.getClosePrice().floatValue();
+
+
+        for (int i = 0; i < series.getBarCount(); i++) {
+            Bar bar = series.getBar(i);
+
+            lowestClosePrice = Math.min(bar.getClosePrice().floatValue(), lowestClosePrice);
+            highestClosePrice = Math.max(bar.getClosePrice().floatValue(), highestClosePrice);
+        }
+
+        float delta = (highestClosePrice - lowestClosePrice) / 180; // delta used for distinguishing peaks
+
+        boolean isDetectingEmi = false; // should we search emission peak first of absorption peak first?
+
+        Float lastResistanceLevel;
+        Float lastSupportLevel;
+
+        for(int i = 1; i < series.getBarCount(); ++i) {
+            Bar bar = series.getBar(i);
+
+            float maxPrice = bar.getMaxPrice().floatValue();
+            float minPrice = bar.getMinPrice().floatValue();
+
+            if (maxPrice > mx) {
+                mxPos = i;
+                mx = maxPrice;
+            }
+            if (minPrice < mn) {
+                mnPos = i;
+                mn = minPrice;
+            }
+
+            if(isDetectingEmi && maxPrice < mx - delta) {
+                lastResistanceLevel = mx;
+
+                // just increment the level count
+                if(resistanceLevels.containsKey(lastResistanceLevel)) {
+                    int count = resistanceLevels.get(lastResistanceLevel);
+                    resistanceLevels.put(lastResistanceLevel, count + 1);
+                } else { // add the level and a count of 1
+                    resistanceLevels.put(lastResistanceLevel, 1);
+                }
+
+                isDetectingEmi = false;
+
+                i = mxPos - 1;
+
+                mn = series.getBar(mxPos).getClosePrice().floatValue();
+                mnPos = mxPos;
+            }
+            else if(!isDetectingEmi && minPrice > mn + delta) {
+                lastSupportLevel = mn;
+
+                // just increment the level count
+                if(supportLevels.containsKey(lastSupportLevel)) {
+                    int count = supportLevels.get(lastSupportLevel);
+                    supportLevels.put(lastSupportLevel, count + 1);
+                } else { // add the level and a count of 1
+                    supportLevels.put(lastSupportLevel, 1);
+                }
+
+                isDetectingEmi = true;
+
+                i = mnPos - 1;
+
+                mx = series.getBar(mnPos).getClosePrice().floatValue();
+                mxPos = mnPos;
+            }
+        }
+
+        for (Map.Entry<Float, Integer> supportLevelEntries : supportLevels.entrySet()) {
+            Integer count = supportLevelEntries.getValue();
+            Float level = supportLevelEntries.getKey();
+
+            if(count > 1) {
+                Marker supportMarker = new ValueMarker(level);
+                supportMarker.setPaint(Color.GREEN.darker());
+                supportMarker.setStroke(new BasicStroke(1));
+                plot.addRangeMarker(supportMarker);
+            }
+        }
+
+        for (Map.Entry<Float, Integer> resistanceLevelEntries : resistanceLevels.entrySet()) {
+            Integer count = resistanceLevelEntries.getValue();
+            Float level = resistanceLevelEntries.getKey();
+
+            if(count > 1) {
+                Marker resistanceMarker = new ValueMarker(level);
+                resistanceMarker.setPaint(Color.RED.darker());
+                resistanceMarker.setStroke(new BasicStroke(1));
+                plot.addRangeMarker(resistanceMarker);
+            }
+        }
+    }
+
+    private static void addBreakSupportAndResistanceSignals(TimeSeries series, XYPlot plot) {
         // Level => count - count = number of times level was reached
         Map<Float, Integer> supportLevels = new HashMap<>();
         Map<Float, Integer> resistanceLevels = new HashMap<>();
@@ -144,7 +250,7 @@ public class SupportAndResistanceToCandlestickChart {
                 mxPos = mnPos;
             }
 
-            if(i > confirmationForSignal - 1 && drawBreakSignals) {
+            if(i > confirmationForSignal - 1) {
 
                 boolean hasBearishConfirmation = true;
                 boolean hasBullishConfirmation = true;
@@ -161,9 +267,9 @@ public class SupportAndResistanceToCandlestickChart {
                     //TODO: 1. find the first time the support got broken
                     //TODO: 2. set how much candles will be tested until a break is completely confirmed
                     //TODO: 3. mark the support line as broken, and do not consider it anymore (probably this is what i am missing here)
-                    boolean brokeSupportBarier = minPrice < lastSupportLevel;
+                    boolean brokeSupportBarrier = minPrice < lastSupportLevel;
 
-                    if(brokeSupportBarier) {
+                    if(brokeSupportBarrier) {
                         // Broke support signal
                         double supportBreakSignalBarTime = new Minute(Date.from(bar.getEndTime().toInstant())).getFirstMillisecond();
                         Marker supportBreakMarker = new ValueMarker(supportBreakSignalBarTime);
@@ -189,30 +295,6 @@ public class SupportAndResistanceToCandlestickChart {
                         plot.addDomainMarker(resistanceBreakMarker);
                     }
                 }*/
-            }
-        }
-
-        for (Map.Entry<Float, Integer> supportLevelEntries : supportLevels.entrySet()) {
-            Integer count = supportLevelEntries.getValue();
-            Float level = supportLevelEntries.getKey();
-
-            if(count > 1) {
-                Marker supportMarker = new ValueMarker(level);
-                supportMarker.setPaint(Color.GREEN.darker());
-                supportMarker.setStroke(new BasicStroke(1));
-                plot.addRangeMarker(supportMarker);
-            }
-        }
-
-        for (Map.Entry<Float, Integer> resistanceLevelEntries : resistanceLevels.entrySet()) {
-            Integer count = resistanceLevelEntries.getValue();
-            Float level = resistanceLevelEntries.getKey();
-
-            if(count > 1) {
-                Marker resistanceMarker = new ValueMarker(level);
-                resistanceMarker.setPaint(Color.RED.darker());
-                resistanceMarker.setStroke(new BasicStroke(1));
-                plot.addRangeMarker(resistanceMarker);
             }
         }
     }
@@ -277,7 +359,7 @@ public class SupportAndResistanceToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addSupportAndResistance(series, plot, false);
+        addSupportAndResistance(series, plot);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
