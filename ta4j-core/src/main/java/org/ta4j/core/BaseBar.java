@@ -43,6 +43,8 @@ public class BaseBar implements Bar {
     private Decimal openPrice = null;
     /** Close price of the period */
     private Decimal closePrice = null;
+    /** Last traded price */
+    private Decimal ltp = null;
     /** Max price of the period */
     private Decimal maxPrice = null;
     /** Min price of the period */
@@ -80,6 +82,26 @@ public class BaseBar implements Bar {
                 Decimal.valueOf(highPrice),
                 Decimal.valueOf(lowPrice),
                 Decimal.valueOf(closePrice),
+                null,
+                Decimal.valueOf(volume));
+    }
+
+    /**
+     * Constructor.
+     * @param endTime the end time of the bar period
+     * @param openPrice the open price of the bar period
+     * @param highPrice the highest price of the bar period
+     * @param lowPrice the lowest price of the bar period
+     * @param closePrice the close price of the bar period
+     * @param ltp the close price of the bar period
+     * @param volume the volume of the bar period
+     */
+    public BaseBar(ZonedDateTime endTime, double openPrice, double highPrice, double lowPrice, double closePrice, double ltp, double volume) {
+        this(endTime, Decimal.valueOf(openPrice),
+                Decimal.valueOf(highPrice),
+                Decimal.valueOf(lowPrice),
+                Decimal.valueOf(closePrice),
+                Decimal.valueOf(ltp),
                 Decimal.valueOf(volume));
     }
 
@@ -97,6 +119,7 @@ public class BaseBar implements Bar {
                 Decimal.valueOf(highPrice),
                 Decimal.valueOf(lowPrice),
                 Decimal.valueOf(closePrice),
+                null,
                 Decimal.valueOf(volume));
     }
 
@@ -109,8 +132,26 @@ public class BaseBar implements Bar {
      * @param closePrice the close price of the bar period
      * @param volume the volume of the bar period
      */
-    public BaseBar(ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal volume) {
-        this(Duration.ofDays(1), endTime, openPrice, highPrice, lowPrice, closePrice, volume);
+    public BaseBar(ZonedDateTime endTime, String openPrice, String highPrice, String lowPrice, String closePrice,  String ltp, String volume) {
+        this(endTime, Decimal.valueOf(openPrice),
+                Decimal.valueOf(highPrice),
+                Decimal.valueOf(lowPrice),
+                Decimal.valueOf(closePrice),
+                Decimal.valueOf(ltp),
+                Decimal.valueOf(volume));
+    }
+
+    /**
+     * Constructor.
+     * @param endTime the end time of the bar period
+     * @param openPrice the open price of the bar period
+     * @param highPrice the highest price of the bar period
+     * @param lowPrice the lowest price of the bar period
+     * @param closePrice the close price of the bar period
+     * @param volume the volume of the bar period
+     */
+    public BaseBar(ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal ltp, Decimal volume) {
+        this(Duration.ofDays(1), endTime, openPrice, highPrice, lowPrice, closePrice, ltp, volume);
     }
 
     /**
@@ -123,8 +164,8 @@ public class BaseBar implements Bar {
      * @param closePrice the close price of the bar period
      * @param volume the volume of the bar period
      */
-    public BaseBar(Duration timePeriod, ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal volume) {
-        this(timePeriod, endTime, openPrice, highPrice, lowPrice, closePrice, volume, Decimal.ZERO);
+    public BaseBar(Duration timePeriod, ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal ltp, Decimal volume) {
+        this(timePeriod, endTime, openPrice, highPrice, lowPrice, closePrice, ltp, volume, Decimal.ZERO);
     }
 
     /**
@@ -138,7 +179,7 @@ public class BaseBar implements Bar {
      * @param volume the volume of the bar period
      * @param amount the amount of the bar period
      */
-    public BaseBar(Duration timePeriod, ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal volume, Decimal amount) {
+    public BaseBar(Duration timePeriod, ZonedDateTime endTime, Decimal openPrice, Decimal highPrice, Decimal lowPrice, Decimal closePrice, Decimal ltp, Decimal volume, Decimal amount) {
         checkTimeArguments(timePeriod, endTime);
         this.timePeriod = timePeriod;
         this.endTime = endTime;
@@ -147,6 +188,7 @@ public class BaseBar implements Bar {
         this.maxPrice = highPrice;
         this.minPrice = lowPrice;
         this.closePrice = closePrice;
+        this.ltp = ltp;
         this.volume = volume;
         this.amount = amount;
     }
@@ -177,6 +219,15 @@ public class BaseBar implements Bar {
      */
     public Decimal getClosePrice() {
         return closePrice;
+    }
+
+    /**
+     * https://www.quora.com/What-does-the-term-LTP-mean-in-the-stock-market
+     *
+     * @return the last traded price
+     */
+    public Decimal getLtp() {
+        return ltp;
     }
 
     /**

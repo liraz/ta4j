@@ -56,6 +56,13 @@ public interface Bar extends Serializable {
     Decimal getClosePrice();
 
     /**
+     * https://www.quora.com/What-does-the-term-LTP-mean-in-the-stock-market
+     *
+     * @return the last traded price
+     */
+    Decimal getLtp();
+
+    /**
      * @return the whole traded volume in the period
      */
     Decimal getVolume();

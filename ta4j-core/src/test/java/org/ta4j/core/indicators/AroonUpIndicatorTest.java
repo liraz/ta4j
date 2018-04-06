@@ -91,7 +91,7 @@ public class AroonUpIndicatorTest {
     public void onlyNaNValues(){
         List<Bar> bars = new ArrayList<>();
         for (long i = 0; i<= 1000; i++){
-            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i), Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN);
+            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i), Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN, Decimal.NaN);
             bars.add(bar);
         }
 
@@ -107,7 +107,7 @@ public class AroonUpIndicatorTest {
         List<Bar> bars = new ArrayList<>();
         for (long i = 0; i<= 10; i++){ // (0, NaN, 2, NaN, 4, NaN, 6, NaN, 8, ...)
             Decimal maxPrice = i % 2 == 0 ? Decimal.valueOf(i): Decimal.NaN;
-            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i),Decimal.NaN, maxPrice,Decimal.NaN, Decimal.NaN, Decimal.NaN);
+            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i),Decimal.NaN, maxPrice,Decimal.NaN, Decimal.NaN, Decimal.NaN, Decimal.NaN);
             bars.add(bar);
         }
         BaseTimeSeries series = new BaseTimeSeries("NaN test", bars);

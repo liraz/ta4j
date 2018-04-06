@@ -46,6 +46,7 @@ import org.ta4j.core.api.yahoo.YahooApiResponse;
 import org.ta4j.core.api.yahoo.YahooChartResponse;
 import org.ta4j.core.api.yahoo.YahooChartResponseResult;
 import org.ta4j.core.api.yahoo.result.indicator.YahooIndicatorQuote;
+import org.ta4j.core.utils.CandleBarUtils;
 
 /**
  * This class build a Ta4j time series from a CSV file containing bars.
@@ -118,6 +119,8 @@ public class CsvBarsLoader {
                     List<Double> opens = yahooIndicatorQuote.getOpen();
                     List<Double> volumes = yahooIndicatorQuote.getVolume();
 
+                    Double lastTradedPrice = CandleBarUtils.getLastTradedPrice(closes);
+
                     for (int i = 0; i < timestamps.size(); i++) {
                         Long timestamp = timestamps.get(i);
 
@@ -129,7 +132,7 @@ public class CsvBarsLoader {
 
                         if (close != null && open != null) {
                             ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
-                            bars.add(new BaseBar(dateTime, open, high, low, close, volume));
+                            bars.add(new BaseBar(dateTime, open, high, low, close, lastTradedPrice, volume));
                         }
                     }
                 }

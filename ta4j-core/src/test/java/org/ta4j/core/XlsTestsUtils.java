@@ -136,6 +136,7 @@ public class XlsTestsUtils {
                     Decimal.valueOf(cellValues[2].formatAsString()),
                     Decimal.valueOf(cellValues[3].formatAsString()),
                     Decimal.valueOf(cellValues[4].formatAsString()),
+                    null,
                     Decimal.valueOf(cellValues[5].formatAsString()));
             series.addBar(bar);
         }

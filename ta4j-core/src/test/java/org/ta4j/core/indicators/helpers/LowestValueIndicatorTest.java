@@ -77,7 +77,7 @@ public class LowestValueIndicatorTest {
     public void onlyNaNValues(){
         List<Bar> bars = new ArrayList<>();
         for (long i = 0; i<= 10000; i++){
-            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i), Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN);
+            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i), Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN, Decimal.NaN);
             bars.add(bar);
         }
 
@@ -93,7 +93,7 @@ public class LowestValueIndicatorTest {
         List<Bar> bars = new ArrayList<>();
         for (long i = 0; i<= 10; i++){ // (NaN, 1, NaN, 2, NaN, 3, NaN, 4, ...)
             Decimal closePrice = i % 2 == 0 ? Decimal.valueOf(i): Decimal.NaN;
-            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i),Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN);
+            Bar bar = new BaseBar(ZonedDateTime.now().plusDays(i),Decimal.NaN, Decimal.NaN,Decimal.NaN, Decimal.NaN, Decimal.NaN, Decimal.NaN);
             bars.add(bar);
         }
 
