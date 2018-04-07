@@ -14,7 +14,7 @@ import java.util.List;
 
 public class CandleBarUtils {
 	// percentages
-	private static double DIFF_PERC_FROM_EXTREME = .8d;
+	private static double DIFF_PERC_FROM_EXTREME = .3d;
 	private static double DIFF_PERC_FOR_INTRASR_DISTANCE = .8d;
 	private static double MIN_PERC_FOR_TREND = .8d;
 	private static double DIFF_PERC_FOR_CANDLE_CLOSE = .8d;
@@ -22,7 +22,7 @@ public class CandleBarUtils {
 	private static int MIN_DIFF_FOR_CONSECUTIVE_CUT = 5;
 
 	// scores
-	private static double SCORE_FOR_CUT_BODY = -1;
+	private static double SCORE_FOR_CUT_BODY = -2;
 	private static double SCORE_FOR_CUT_WICK = -1;
 	private static double SCORE_FOR_TOUCH_HIGH_LOW = 1;
 	private static double SCORE_FOR_TOUCH_NORMAL = 2;

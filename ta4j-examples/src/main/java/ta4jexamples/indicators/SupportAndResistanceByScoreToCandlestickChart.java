@@ -57,10 +57,10 @@ public class SupportAndResistanceByScoreToCandlestickChart {
     //private static String SYMBOL = "BTC-USD";
 
     private static int MINUTE_PER_CANDLE = 5;
-    private static int CUMULATIVE_CANDLE_SIZE = 60 / MINUTE_PER_CANDLE; // 15 * 4 = 60 minutes (1hr candles)
+    private static int CUMULATIVE_CANDLE_SIZE = 60 / MINUTE_PER_CANDLE; // 60 minutes (1hr candles)
 
     private static int CONSECUTIVE_CANDLE_TO_CHECK_MIN = 5; // number of candles to check on each side
-    private static int MIN_SCORE_TO_PRINT = 1; // the minimum score required to draw an indication
+    private static int MIN_SCORE_TO_PRINT = 5; // the minimum score required to draw an indication
 
     private static void addSupportAndResistance(TimeSeries series, XYPlot plot) {
         // Combining small candles to get larger candles of required timeframe. (I have 1 minute candles and here creating 1 Hr candles)
@@ -107,12 +107,15 @@ public class SupportAndResistanceByScoreToCandlestickChart {
             if(pointScore.getScore() < MIN_SCORE_TO_PRINT){
                 continue;
             }
-            //The extremes always come as a Strong SR, so I remove some of them
+            // The extremes always come as a Strong SR, so I remove some of them
             // I also reject a price which is very close the one already used
             List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
             if (!CandleBarUtils.similar(pointScore.getPrice(), used) && !CandleBarUtils.closeFromExtreme(pointScore.getPrice(), min, max)) {
                 System.out.println(String.format("Strong SR %s and score %s", pointScore.getPrice(), pointScore.getScore()));
                 System.out.println("Events at point are " + pointEventList);
+
+                // draw the SR line
+                drawSRLine(pointScore, plot);
 
                 used.add(pointScore.getPrice());
                 total += 1;
@@ -120,33 +123,33 @@ public class SupportAndResistanceByScoreToCandlestickChart {
             if(total >= totalPointsToPrint){
                 break;
             }
-
-            // draw the SR
-            boolean hasTouchDown = false;
-            boolean hasTouchUp = false;
-
-            for (PointScoreEvent pointScoreEvent : pointEventList) {
-                if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN_HIGHLOW) {
-                    hasTouchDown = true;
-                    break;
-                }
-                if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP_HIGHLOW) {
-                    hasTouchUp = true;
-                    break;
-                }
-            }
-
-            Marker marker = new ValueMarker(pointScore.getPrice());
-            // draw the support
-            if(hasTouchDown) {
-                marker.setPaint(Color.GREEN);
-            } else if(hasTouchUp) { // draw the resistance
-                marker.setPaint(Color.RED);
-            }
-            marker.setLabel("       " + pointScore.getScore().toString());
-            marker.setStroke(new BasicStroke(1));
-            plot.addRangeMarker(marker);
         }
+    }
+
+    private static void drawSRLine(PointScore pointScore, XYPlot plot) {
+        int touchDownCount = 0;
+        int touchUpCount = 0;
+
+        List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
+        for (PointScoreEvent pointScoreEvent : pointEventList) {
+            if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN_HIGHLOW) {
+                touchDownCount++;
+            }
+            if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP_HIGHLOW) {
+                touchUpCount++;
+            }
+        }
+
+        Marker marker = new ValueMarker(pointScore.getPrice());
+        // draw the support
+        if(touchDownCount > 0 && touchDownCount > touchUpCount) {
+            marker.setPaint(Color.GREEN);
+        } else if(touchUpCount > 0 && touchUpCount > touchDownCount) { // draw the resistance
+            marker.setPaint(Color.RED);
+        }
+        marker.setLabel("       " + pointScore.getScore().toString());
+        marker.setStroke(new BasicStroke(1));
+        plot.addRangeMarker(marker);
     }
 
     /**

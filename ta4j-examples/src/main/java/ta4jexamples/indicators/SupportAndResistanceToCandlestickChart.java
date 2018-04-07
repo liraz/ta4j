@@ -180,10 +180,15 @@ public class SupportAndResistanceToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
+        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
                 "?range=3d&interval=5m&indicators=quote" +
                 "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";
+        String title = "Bitcoin";*/
+
+        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
+                "?range=2d&interval=5m&indicators=quote" +
+                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
+        String title = "S&P500";
 
         plotSymbol(url, title);
     }
