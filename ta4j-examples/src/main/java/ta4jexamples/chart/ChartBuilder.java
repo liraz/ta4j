@@ -70,18 +70,42 @@ public class ChartBuilder {
      * @return
      */
     public static TimeSeriesCollection createDataset(TimeSeries series, String name) {
-        ClosePriceIndicator closePriceIndicator = new ClosePriceIndicator(series);
+        return createDataset(series, name, new ClosePriceIndicator(series));
+    }
 
+    /**
+     *
+     * @param series
+     * @param name
+     * @return
+     */
+    public static TimeSeriesCollection createDataset(TimeSeries series, String name, Indicator<Decimal> indicator) {
         TimeSeriesCollection dataset = new TimeSeriesCollection();
         org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries(name);
         for (int i = 0; i < series.getBarCount(); i++) {
             Bar bar = series.getBar(i);
 
             chartTimeSeries.add(new Minute(new Date(bar.getEndTime().toEpochSecond() * 1000)),
-                    closePriceIndicator.getValue(i).toDouble());
+                    indicator.getValue(i).toDouble());
         }
         dataset.addSeries(chartTimeSeries);
         return dataset;
+    }
+
+    /**
+     * Builds a JFreeChart time series from a Ta4j time series and an indicator.
+     * @param barseries the ta4j time series
+     * @param indicator the indicator
+     * @param name the name of the chart time series
+     * @return the JFreeChart time series
+     */
+    public static org.jfree.data.time.TimeSeries buildChartTimeSeries(TimeSeries barseries, Indicator<Decimal> indicator, String name) {
+        org.jfree.data.time.TimeSeries chartTimeSeries = new org.jfree.data.time.TimeSeries(name);
+        for (int i = 0; i < barseries.getBarCount(); i++) {
+            Bar bar = barseries.getBar(i);
+            chartTimeSeries.add(new Minute(Date.from(bar.getEndTime().toInstant())), indicator.getValue(i).doubleValue());
+        }
+        return chartTimeSeries;
     }
 
     /**

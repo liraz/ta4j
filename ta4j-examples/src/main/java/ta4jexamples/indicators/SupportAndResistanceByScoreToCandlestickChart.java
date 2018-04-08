@@ -32,6 +32,7 @@ import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
@@ -39,6 +40,10 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.PointScoreEvent;
+import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.volume.MVWAPIndicator;
+import org.ta4j.core.indicators.volume.VWAPIndicator;
 import org.ta4j.core.utils.CandleBarUtils;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
@@ -53,8 +58,8 @@ import java.util.List;
  */
 public class SupportAndResistanceByScoreToCandlestickChart {
 
-    private static String SYMBOL = "ES=F";
-    //private static String SYMBOL = "BTC-USD";
+    //private static String SYMBOL = "ES=F";
+    private static String SYMBOL = "BTC-USD";
 
     private static int MINUTE_PER_CANDLE = 5;
     private static int CUMULATIVE_CANDLE_SIZE = 60 / MINUTE_PER_CANDLE; // 60 minutes (1hr candles)
@@ -152,6 +157,33 @@ public class SupportAndResistanceByScoreToCandlestickChart {
         plot.addRangeMarker(marker);
     }
 
+
+    private static void addBreakoutSignals(TimeSeries series, XYPlot plot) {
+        VWAPIndicator vwap = new VWAPIndicator(series, 14);
+        MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
+
+        ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+        SMAIndicator sma = new SMAIndicator(closePrice, 12);
+
+        // draw the indicators on chart (for testing the strategy)
+        TimeSeriesCollection dataset = new TimeSeriesCollection();
+        dataset.addSeries(ChartBuilder.buildChartTimeSeries(series, mvwap, "Moving volume weighted average"));
+        dataset.addSeries(ChartBuilder.buildChartTimeSeries(series, sma, "SMA"));
+
+        ChartBuilder.addAxis(plot, dataset, "", Color.blue);
+
+        // resistance breakout
+        //TODO: 1. a candle was open below resistance level and just closed above the resistance level
+
+        //TODO: 2. go back few candles until reaching a point of MVWAP crossing below SMA
+
+        //TODO: 3. check if MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
+
+        //TODO: 4. our buy signal is at the price the breaking candle closed
+
+        //TODO: 5. our sell signal (going out of position) should be when MVWAP is crossing above SMA
+    }
+
     /**
      * Displays a chart in a frame.
      * @param chart the chart to be displayed
@@ -213,6 +245,7 @@ public class SupportAndResistanceByScoreToCandlestickChart {
         plot.setRenderer(renderer);
 
         addSupportAndResistance(series, plot);
+        addBreakoutSignals(series, plot);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
