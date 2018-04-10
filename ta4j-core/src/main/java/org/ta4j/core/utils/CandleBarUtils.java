@@ -3,16 +3,19 @@ package org.ta4j.core.utils;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.Decimal;
+import org.ta4j.core.TimeSeries;
 import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.PointScoreEvent;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class CandleBarUtils {
+
+	// support and resistance parameters
+	private static int CONSECUTIVE_CANDLE_TO_CHECK_MIN = 5; // number of candles to check on each side
+	private static int MIN_SCORE_TO_PRINT = 5; // the minimum score required to draw an indication
+
 	// percentages
 	private static double DIFF_PERC_FROM_EXTREME = .3d;
 	private static double DIFF_PERC_FOR_INTRASR_DISTANCE = .8d;
@@ -26,6 +29,109 @@ public class CandleBarUtils {
 	private static double SCORE_FOR_CUT_WICK = -1;
 	private static double SCORE_FOR_TOUCH_HIGH_LOW = 1;
 	private static double SCORE_FOR_TOUCH_NORMAL = 2;
+
+
+	public static List<PointScore> getSupportAndResistanceByScore(TimeSeries series, int cumulativeCandleSize) {
+		List<PointScore> supportAndResistance = new ArrayList<>();
+
+		// Combining small candles to get larger candles of required timeframe. (I have 1 minute candles and here creating 1 Hr candles)
+		List<Bar> cumulativeCandles = CandleBarUtils.getCumulativeCandles(series.getBarData(), cumulativeCandleSize);
+
+		// Tell whether each point is a high(higher than two candles on each side) or a low(lower than two candles on each side)
+		List<Boolean> highLowValueList = CandleBarUtils.findHighLow(cumulativeCandles, 2);
+		Set<Double> impPoints = new HashSet<>();
+
+		int pos = 0;
+		for(Bar candle : cumulativeCandles){
+			//A candle is imp only if it is the highest / lowest among #CONSECUTIVE_CANDLE_TO_CHECK_MIN on each side
+			List<Bar> subList = cumulativeCandles.subList(Math.max(0, pos - CONSECUTIVE_CANDLE_TO_CHECK_MIN),
+					Math.min(cumulativeCandles.size(), pos + CONSECUTIVE_CANDLE_TO_CHECK_MIN));
+
+			if(subList.stream().min(Comparator.comparing(Bar::getMinPrice)).get().getMinPrice().equals(candle.getMinPrice()) ||
+					subList.stream().max(Comparator.comparing(Bar::getMaxPrice)).get().getMaxPrice().equals(candle.getMaxPrice())) {
+
+				impPoints.add(candle.getMaxPrice().doubleValue());
+				impPoints.add(candle.getMinPrice().doubleValue());
+			}
+			pos++;
+		}
+
+		Iterator<Double> iterator = impPoints.iterator();
+		List<PointScore> score = new ArrayList<PointScore>();
+
+		while (iterator.hasNext()){
+			Double currentValue = iterator.next();
+			//Get score of each point
+			score.add(CandleBarUtils.getCandlesScore(cumulativeCandles, highLowValueList, currentValue));
+		}
+		score.sort((o1, o2) -> o2.getScore().compareTo(o1.getScore()));
+
+		List<Double> used = new ArrayList<Double>();
+		int total = 0;
+		int totalPointsToPrint = 30;
+
+		Double min = CandleBarUtils.getMin(cumulativeCandles).doubleValue();
+		Double max = CandleBarUtils.getMax(cumulativeCandles).doubleValue();
+
+		for(PointScore pointScore : score){
+			// Each point should have at least #MIN_SCORE_TO_PRINT point
+			if(pointScore.getScore() < MIN_SCORE_TO_PRINT){
+				continue;
+			}
+			// The extremes always come as a Strong SR, so I remove some of them
+			// I also reject a price which is very close the one already used
+			List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
+			if (!CandleBarUtils.similar(pointScore.getPrice(), used) && !CandleBarUtils.closeFromExtreme(pointScore.getPrice(), min, max)) {
+				System.out.println(String.format("Strong SR %s and score %s", pointScore.getPrice(), pointScore.getScore()));
+				System.out.println("Events at point are " + pointEventList);
+
+				supportAndResistance.add(pointScore);
+
+				used.add(pointScore.getPrice());
+				total += 1;
+			}
+			if(total >= totalPointsToPrint){
+				break;
+			}
+		}
+		return supportAndResistance;
+	}
+
+	public static List<PointScore> getResistanceScores(List<PointScore> scores) {
+		List<PointScore> resistance = new ArrayList<>();
+		for (PointScore score : scores) {
+			if(isPointScoreResistance(score)) {
+				resistance.add(score);
+			}
+		}
+		return resistance;
+	}
+
+	public static List<PointScore> getSupportScores(List<PointScore> scores) {
+		List<PointScore> support = new ArrayList<>();
+		for (PointScore score : scores) {
+			if(!isPointScoreResistance(score)) {
+				support.add(score);
+			}
+		}
+		return support;
+	}
+
+	public static boolean isPointScoreResistance(PointScore pointScore) {
+		int touchDownCount = 0;
+		int touchUpCount = 0;
+
+		List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
+		for (PointScoreEvent pointScoreEvent : pointEventList) {
+			if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN_HIGHLOW) {
+				touchDownCount++;
+			}
+			if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP_HIGHLOW) {
+				touchUpCount++;
+			}
+		}
+		return (touchUpCount > 0 && touchUpCount > touchDownCount);
+	}
 
 	public static List<Bar> getCumulativeCandles(List<Bar> candles, int candlesToJoin) {
 		List<Bar> accumulatedCandles = new ArrayList<>();

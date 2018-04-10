@@ -62,6 +62,8 @@ public interface Bar extends Serializable {
      */
     Decimal getLtp();
 
+    void setLtp(Decimal ltp);
+
     /**
      * @return the whole traded volume in the period
      */

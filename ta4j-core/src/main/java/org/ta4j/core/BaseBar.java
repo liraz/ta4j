@@ -230,6 +230,11 @@ public class BaseBar implements Bar {
         return ltp;
     }
 
+    @Override
+    public void setLtp(Decimal ltp) {
+        this.ltp = ltp;
+    }
+
     /**
      * @return the whole traded volume in the period
      */

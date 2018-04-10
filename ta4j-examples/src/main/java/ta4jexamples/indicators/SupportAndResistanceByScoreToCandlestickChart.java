@@ -36,10 +36,10 @@ import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
-import org.ta4j.core.Bar;
+import org.ta4j.core.Order;
+import org.ta4j.core.Strategy;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.analysis.PointScore;
-import org.ta4j.core.analysis.PointScoreEvent;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.volume.MVWAPIndicator;
@@ -47,110 +47,41 @@ import org.ta4j.core.indicators.volume.VWAPIndicator;
 import org.ta4j.core.utils.CandleBarUtils;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
+import ta4jexamples.strategies.ResistanceBreakoutStrategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
  */
 public class SupportAndResistanceByScoreToCandlestickChart {
-
-    //private static String SYMBOL = "ES=F";
-    private static String SYMBOL = "BTC-USD";
-
     private static int MINUTE_PER_CANDLE = 5;
-    private static int CUMULATIVE_CANDLE_SIZE = 60 / MINUTE_PER_CANDLE; // 60 minutes (1hr candles)
 
-    private static int CONSECUTIVE_CANDLE_TO_CHECK_MIN = 5; // number of candles to check on each side
-    private static int MIN_SCORE_TO_PRINT = 5; // the minimum score required to draw an indication
+    private static String SYMBOL = "ES=F";
+    //private static String SYMBOL = "BTC-USD";
 
-    private static void addSupportAndResistance(TimeSeries series, XYPlot plot) {
-        // Combining small candles to get larger candles of required timeframe. (I have 1 minute candles and here creating 1 Hr candles)
-        List<Bar> cumulativeCandles = CandleBarUtils.getCumulativeCandles(series.getBarData(), CUMULATIVE_CANDLE_SIZE);
+    private static void addSupportAndResistanceSignals(TimeSeries series, XYPlot plot) {
+        //
+        List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
+                60 / MINUTE_PER_CANDLE);// 60 minutes (1hr candles)
 
-        // Tell whether each point is a high(higher than two candles on each side) or a low(lower than two candles on each side)
-        List<Boolean> highLowValueList = CandleBarUtils.findHighLow(cumulativeCandles, 2);
-        Set<Double> impPoints = new HashSet<>();
-
-        int pos = 0;
-        for(Bar candle : cumulativeCandles){
-            //A candle is imp only if it is the highest / lowest among #CONSECUTIVE_CANDLE_TO_CHECK_MIN on each side
-            List<Bar> subList = cumulativeCandles.subList(Math.max(0, pos - CONSECUTIVE_CANDLE_TO_CHECK_MIN),
-                    Math.min(cumulativeCandles.size(), pos + CONSECUTIVE_CANDLE_TO_CHECK_MIN));
-
-            if(subList.stream().min(Comparator.comparing(Bar::getMinPrice)).get().getMinPrice().equals(candle.getMinPrice()) ||
-                    subList.stream().max(Comparator.comparing(Bar::getMaxPrice)).get().getMaxPrice().equals(candle.getMaxPrice())) {
-
-                impPoints.add(candle.getMaxPrice().doubleValue());
-                impPoints.add(candle.getMinPrice().doubleValue());
-            }
-            pos++;
-        }
-
-        Iterator<Double> iterator = impPoints.iterator();
-        List<PointScore> score = new ArrayList<PointScore>();
-
-        while (iterator.hasNext()){
-            Double currentValue = iterator.next();
-            //Get score of each point
-            score.add(CandleBarUtils.getCandlesScore(cumulativeCandles, highLowValueList, currentValue));
-        }
-        score.sort((o1, o2) -> o2.getScore().compareTo(o1.getScore()));
-
-        List<Double> used = new ArrayList<Double>();
-        int total = 0;
-        int totalPointsToPrint = 30;
-
-        Double min = CandleBarUtils.getMin(cumulativeCandles).doubleValue();
-        Double max = CandleBarUtils.getMax(cumulativeCandles).doubleValue();
-
-        for(PointScore pointScore : score){
-            // Each point should have at least #MIN_SCORE_TO_PRINT point
-            if(pointScore.getScore() < MIN_SCORE_TO_PRINT){
-                continue;
-            }
-            // The extremes always come as a Strong SR, so I remove some of them
-            // I also reject a price which is very close the one already used
-            List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
-            if (!CandleBarUtils.similar(pointScore.getPrice(), used) && !CandleBarUtils.closeFromExtreme(pointScore.getPrice(), min, max)) {
-                System.out.println(String.format("Strong SR %s and score %s", pointScore.getPrice(), pointScore.getScore()));
-                System.out.println("Events at point are " + pointEventList);
-
-                // draw the SR line
-                drawSRLine(pointScore, plot);
-
-                used.add(pointScore.getPrice());
-                total += 1;
-            }
-            if(total >= totalPointsToPrint){
-                break;
-            }
+        for(PointScore pointScore : supportAndResistance){
+            // draw the SR line
+            drawSRLine(pointScore, plot);
         }
     }
 
     private static void drawSRLine(PointScore pointScore, XYPlot plot) {
-        int touchDownCount = 0;
-        int touchUpCount = 0;
-
-        List<PointScoreEvent> pointEventList = pointScore.getPointEventList();
-        for (PointScoreEvent pointScoreEvent : pointEventList) {
-            if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_DOWN_HIGHLOW) {
-                touchDownCount++;
-            }
-            if(pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP || pointScoreEvent.getType() == PointScoreEvent.Type.TOUCH_UP_HIGHLOW) {
-                touchUpCount++;
-            }
-        }
-
         Marker marker = new ValueMarker(pointScore.getPrice());
-        // draw the support
-        if(touchDownCount > 0 && touchDownCount > touchUpCount) {
-            marker.setPaint(Color.GREEN);
-        } else if(touchUpCount > 0 && touchUpCount > touchDownCount) { // draw the resistance
+        // draw the resistance
+        if(CandleBarUtils.isPointScoreResistance(pointScore)) {
             marker.setPaint(Color.RED);
+        } else { // draw the support
+            marker.setPaint(Color.GREEN);
         }
         marker.setLabel("       " + pointScore.getScore().toString());
         marker.setStroke(new BasicStroke(1));
@@ -172,16 +103,22 @@ public class SupportAndResistanceByScoreToCandlestickChart {
 
         ChartBuilder.addAxis(plot, dataset, "", Color.blue);
 
+        List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
+                60 / MINUTE_PER_CANDLE);// 60 minutes (1hr candles)
+
+        List<PointScore> resistanceScores = CandleBarUtils.getResistanceScores(supportAndResistance);
+
+        Map<Strategy, Order.OrderType> strategies = new HashMap<>();
+
         // resistance breakout
-        //TODO: 1. a candle was open below resistance level and just closed above the resistance level
+        for (PointScore resistanceLevel : resistanceScores) {
+            // Strategy 1 - a full resistance breakout upwards
+            strategies.put(ResistanceBreakoutStrategy.buildStrategy(series, resistanceLevel), Order.OrderType.BUY);
 
-        //TODO: 2. go back few candles until reaching a point of MVWAP crossing below SMA
+            // Strategy 2 - a strong swing back from touching the ceiling of resistance level
+        }
 
-        //TODO: 3. check if MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
-
-        //TODO: 4. our buy signal is at the price the breaking candle closed
-
-        //TODO: 5. our sell signal (going out of position) should be when MVWAP is crossing above SMA
+        ChartBuilder.addBuySellSignals(series, plot, strategies);
     }
 
     /**
@@ -244,7 +181,7 @@ public class SupportAndResistanceByScoreToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addSupportAndResistance(series, plot);
+        addSupportAndResistanceSignals(series, plot);
         addBreakoutSignals(series, plot);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();

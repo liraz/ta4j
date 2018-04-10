@@ -23,10 +23,7 @@
 package ta4jexamples.loaders;
 
 import com.opencsv.CSVReader;
-import org.ta4j.core.Bar;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -137,7 +134,15 @@ public class CsvTradesLoader {
     			bars.add(bar);
     		}
     	} while (barEndTime.isBefore(endTime));
-    	return bars;
+
+    	// fill last traded price value on all bars
+		Bar lastBar = bars.get(bars.size() - 1);
+		Decimal ltp = lastBar.getClosePrice();
+
+		for (Bar bar : bars) {
+			bar.setLtp(ltp);
+		}
+		return bars;
     }
 
     public static void main(String[] args) {
