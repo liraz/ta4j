@@ -32,11 +32,14 @@ import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
+import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
 
@@ -44,6 +47,13 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.*;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_2;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_3;
+import static org.ta4j.core.indicators.pivotpoints.TimeLevel.BARBASED;
+import static org.ta4j.core.indicators.pivotpoints.TimeLevel.DAY;
+import static org.ta4j.core.indicators.pivotpoints.TimeLevel.MONTH;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
@@ -195,7 +205,7 @@ public class SupportAndResistanceToCandlestickChart {
 
     private static void plotSymbol(String url, String title) {
         // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
+        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
 
         /*
           Creating the OHLC dataset
@@ -225,7 +235,27 @@ public class SupportAndResistanceToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addSupportAndResistance(series, plot);
+        //addSupportAndResistance(series, plot);
+
+        //TODO: How to draw the pivot point indicator as support and resistance lines?!
+        PivotPointIndicator pp = new PivotPointIndicator(series, BARBASED);
+        StandardReversalIndicator s1 = new StandardReversalIndicator(pp, SUPPORT_1);
+        StandardReversalIndicator s2 = new StandardReversalIndicator(pp, SUPPORT_2);
+        StandardReversalIndicator s3 = new StandardReversalIndicator(pp, SUPPORT_3);
+        StandardReversalIndicator r1 = new StandardReversalIndicator(pp, RESISTANCE_1);
+        StandardReversalIndicator r2 = new StandardReversalIndicator(pp, RESISTANCE_2);
+        StandardReversalIndicator r3 = new StandardReversalIndicator(pp, RESISTANCE_3);
+
+        TimeSeriesCollection ds = new TimeSeriesCollection();
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, s1, "S1"));
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, s2, "S2"));
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, s3, "S3"));
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, r1, "R1"));
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, r2, "R2"));
+        ds.addSeries(ChartBuilder.buildChartTimeSeries(series, r3, "R3"));
+
+        ChartBuilder.addAxis(plot, ds, "", Color.blue);
+
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));

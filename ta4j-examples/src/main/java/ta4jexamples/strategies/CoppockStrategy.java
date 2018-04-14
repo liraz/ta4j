@@ -23,64 +23,55 @@
 package ta4jexamples.strategies;
 
 import org.ta4j.core.*;
-import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
 import org.ta4j.core.indicators.CCIIndicator;
+import org.ta4j.core.indicators.CoppockCurveIndicator;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.indicators.helpers.OpenPriceIndicator;
 import org.ta4j.core.indicators.volume.MVWAPIndicator;
 import org.ta4j.core.indicators.volume.VWAPIndicator;
 import org.ta4j.core.trading.rules.*;
-import org.ta4j.core.utils.CandleBarUtils;
 import ta4jexamples.loaders.CsvTradesLoader;
 
-import java.util.List;
-
 /**
- * Resistance Breakout Strategy
+ * Coppock Strategy
  * <p></p>
- * @see <a href="https://tradingstrategyguides.com/best-breakout-trading-strategy/">
- *     https://tradingstrategyguides.com/best-breakout-trading-strategy/</a>
+ * @see <a href="http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:coppock_curve">
+ *     http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:coppock_curve</a>
  */
-public class ResistanceBreakoutStrategy {
+public class CoppockStrategy {
 
     /**
      * @param series a time series
-     * @param resistanceLevel a strong resistance level that might be broken
-     *
-     * @return a Resistance Breakout Strategy
+     * @return a Coppock strategy
      */
-    public static Strategy buildStrategy(TimeSeries series, PointScore resistanceLevel) {
+    public static Strategy buildStrategy(TimeSeries series) {
         if (series == null) {
             throw new IllegalArgumentException("Series cannot be null");
         }
 
+        ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+
         VWAPIndicator vwap = new VWAPIndicator(series, 14);
         MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
 
-        ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-        OpenPriceIndicator openPrice = new OpenPriceIndicator(series);
-
         SMAIndicator sma = new SMAIndicator(closePrice, 12);
 
-        Rule entryRule =
-                // candle was open below resistance level
-                new UnderIndicatorRule(openPrice, Decimal.valueOf(resistanceLevel.getPrice()))
-                // closed above the resistance level
-                .and(new OverIndicatorRule(closePrice, Decimal.valueOf(resistanceLevel.getPrice())))
-                // MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
-                .and(new IsRisingRule(mvwap, 20, 0.9)
-                // also SMA should indicate an upward movement (short term)
-                .and(new IsRisingRule(sma, 2, 0.9)));
+        CoppockCurveIndicator cc = new CoppockCurveIndicator(closePrice,
+                14, 11, 10);
 
-        // go out of trade if a candle closed below the SMA
-        Rule exitRule = new UnderIndicatorRule(closePrice, sma)
+        Rule entryRule = new IsFallingRule(cc, 5) // Bull trend
+                .and(new UnderIndicatorRule(cc, Decimal.ZERO))
+                // MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
+                .and(new IsRisingRule(mvwap, 20, 0.9)); // Signal
+        
+        Rule exitRule = new IsRisingRule(cc, 5) // Bear trend
+                .and(new OverIndicatorRule(cc, Decimal.ZERO))
                 // stop loss at the start of the candle, should be 0.1 percent.
                 .or(new StopLossRule(closePrice, Decimal.valueOf(0.1)))
                 // take the earnings after 0.4 percent rise, we don't need more than that.
-                .or(new StopGainRule(closePrice, Decimal.valueOf(0.4)));
-
+                .or(new StopGainRule(closePrice, Decimal.valueOf(0.4))); // Signal
+        
         Strategy strategy = new BaseStrategy(entryRule, exitRule);
         strategy.setUnstablePeriod(5);
         return strategy;
@@ -91,24 +82,15 @@ public class ResistanceBreakoutStrategy {
         // Getting the time series
         TimeSeries series = CsvTradesLoader.loadBitstampSeries();
 
-        int minutePerCandle = 5;
-        List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
-                60 / minutePerCandle);// 60 minutes (1hr candles)
+        // Building the trading strategy
+        Strategy strategy = buildStrategy(series);
 
-        List<PointScore> resistanceScores = CandleBarUtils.getResistanceScores(supportAndResistance);
+        // Running the strategy
+        TimeSeriesManager seriesManager = new TimeSeriesManager(series);
+        TradingRecord tradingRecord = seriesManager.run(strategy);
+        System.out.println("Number of trades for the strategy: " + tradingRecord.getTradeCount());
 
-        // resistance breakout
-        for (PointScore resistanceLevel : resistanceScores) {
-            // Building the trading strategy
-            Strategy strategy = buildStrategy(series, resistanceLevel);
-
-            // Running the strategy
-            TimeSeriesManager seriesManager = new TimeSeriesManager(series);
-            TradingRecord tradingRecord = seriesManager.run(strategy);
-            System.out.println("Number of trades for the strategy: " + tradingRecord.getTradeCount());
-
-            // Analysis
-            System.out.println("Total profit for the strategy: " + new TotalProfitCriterion().calculate(series, tradingRecord));
-        }
+        // Analysis
+        System.out.println("Total profit for the strategy: " + new TotalProfitCriterion().calculate(series, tradingRecord));
     }
 }

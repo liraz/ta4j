@@ -89,7 +89,7 @@ public class CandleIndicatorsToCandlestickChart {
 
     private static void plotSymbol(String url, String title) {
         // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
+        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
 
         // adding indicators for candles (drawing rectangle over indicator)
         BearishEngulfingIndicator bearishEngulfingIndicator = new BearishEngulfingIndicator(series);

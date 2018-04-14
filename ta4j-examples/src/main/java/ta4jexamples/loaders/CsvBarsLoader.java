@@ -22,9 +22,12 @@
  */
 package ta4jexamples.loaders;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.time.*;
@@ -32,16 +35,22 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.ta4j.core.Bar;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseTimeSeries;
-import org.ta4j.core.TimeSeries;
+import org.patriques.AlphaVantageConnector;
+import org.patriques.input.timeseries.Interval;
+import org.patriques.input.timeseries.OutputSize;
+import org.patriques.output.AlphaVantageException;
+import org.patriques.output.timeseries.Daily;
+import org.patriques.output.timeseries.IntraDay;
+import org.patriques.output.timeseries.data.StockData;
+import org.ta4j.core.*;
 
 import com.opencsv.CSVReader;
+import org.ta4j.core.api.av.HttpAlphaVantageConnector;
 import org.ta4j.core.api.yahoo.YahooApiResponse;
 import org.ta4j.core.api.yahoo.YahooChartResponse;
 import org.ta4j.core.api.yahoo.YahooChartResponseResult;
@@ -55,6 +64,40 @@ public class CsvBarsLoader {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter LONG_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm:ss a"); // 31/01/2018 09:47:00 PM
+
+    public static TimeSeries loadDailySymbolSeriesFromAlphaVantage(String symbol) throws URISyntaxException {
+        List<Bar> bars = new ArrayList<>();
+
+        //TODO: Loading daily data only if was not fetched from before
+        URL resource = CsvBarsLoader.class.getClassLoader().getResource("daily_" + symbol + ".csv");
+        if (resource != null) {
+            File file = new File(resource.toURI());
+            if(!file.exists()) {
+
+            }
+        }
+
+
+        String apiKey = "B3UVZGXKDCHBLIW9";
+        int timeout = 30000;
+        HttpAlphaVantageConnector apiConnector = new HttpAlphaVantageConnector(apiKey, timeout);
+        org.patriques.TimeSeries stockTimeSeries = new org.patriques.TimeSeries(apiConnector);
+
+        try {
+            Daily response = stockTimeSeries.daily(symbol, OutputSize.FULL);
+            List<StockData> stockData = response.getStockData();
+            double lastTradedPrice = stockData.get(stockData.size() - 1).getClose();
+
+            stockData.forEach(stock -> {
+                ZonedDateTime dateTime = ZonedDateTime.of(stock.getDateTime(), ZoneId.systemDefault());
+                bars.add(new BaseBar(dateTime, stock.getOpen(), stock.getHigh(), stock.getLow(), stock.getClose(),
+                        lastTradedPrice, stock.getVolume()));
+            });
+        } catch (AlphaVantageException e) {
+            e.printStackTrace();
+        }
+        return new BaseTimeSeries("av_bars", bars);
+    }
 
     /**
      * @return a time series from Apple Inc. bars.
@@ -94,7 +137,8 @@ public class CsvBarsLoader {
         return new BaseTimeSeries("es=f_bars", bars);
     }
 
-    public static TimeSeries loadSymbolSeriesFromURL(String url) {
+    //TODO: i should load less data from yahoo - keep previous data in CSV files
+    public static TimeSeries loadYahooSymbolSeriesFromURL(String url) {
         List<Bar> bars = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -179,38 +223,7 @@ public class CsvBarsLoader {
         }
         Collections.reverse(bars);
 
-        return new BaseTimeSeries("es=f_bars", bars);
-    }
-
-    /**
-     * @return a time series from Apple Inc. bars.
-     */
-    public static TimeSeries loadAppleIncSeries() {
-
-        InputStream stream = CsvBarsLoader.class.getClassLoader().getResourceAsStream("appleinc_bars_from_20130101_usd.csv");
-
-        List<Bar> bars = new ArrayList<>();
-
-        CSVReader csvReader = new CSVReader(new InputStreamReader(stream, Charset.forName("UTF-8")), ',', '"', 1);
-        try {
-            String[] line;
-            while ((line = csvReader.readNext()) != null) {
-                ZonedDateTime date = LocalDate.parse(line[0], DATE_FORMAT).atStartOfDay(ZoneId.systemDefault());
-                double open = Double.parseDouble(line[1]);
-                double high = Double.parseDouble(line[2]);
-                double low = Double.parseDouble(line[3]);
-                double close = Double.parseDouble(line[4]);
-                double volume = Double.parseDouble(line[5]);
-
-                bars.add(new BaseBar(date, open, high, low, close, volume));
-            }
-        } catch (IOException ioe) {
-            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", ioe);
-        } catch (NumberFormatException nfe) {
-            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Error while parsing value", nfe);
-        }
-
-        return new BaseTimeSeries("apple_bars", bars);
+        return new BaseTimeSeries("vix_bars", bars);
     }
 
     public static void main(String[] args) {

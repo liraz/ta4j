@@ -28,33 +28,20 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.DatasetRenderingOrder;
-import org.jfree.chart.plot.Marker;
-import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
-import org.jfree.data.time.Minute;
 import org.jfree.data.time.TimeSeriesCollection;
-import org.jfree.data.xy.DefaultHighLowDataset;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
-import org.ta4j.core.indicators.TrendChannelIndicator;
-import org.ta4j.core.indicators.TrendChannelsCollection;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
-import ta4jexamples.strategies.CCICorrectionStrategy;
-import ta4jexamples.strategies.MovingMomentumStrategy;
-import ta4jexamples.strategies.RSI2Strategy;
 import ta4jexamples.strategies.VixStrategy;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -92,7 +79,7 @@ public class VIXDivergenceToCandlestickChart {
 
     private static void plotSymbol(String url, String title) {
         // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
+        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
         //TODO: Loading the VIX from yahoo
         TimeSeries vixSeries = CsvBarsLoader.loadVIXSeries();
 

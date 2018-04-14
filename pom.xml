@@ -44,6 +44,14 @@
         </repository>
     </distributionManagement>
 
+    <repositories>
+        <repository>
+            <id>patriques82</id>
+            <name>patriques82</name>
+            <url>https://dl.bintray.com/patriques82/maven</url>
+        </repository>
+    </repositories>
+
     <ciManagement>
         <url>http://travis-ci.org/ta4j/ta4j</url>
     </ciManagement>

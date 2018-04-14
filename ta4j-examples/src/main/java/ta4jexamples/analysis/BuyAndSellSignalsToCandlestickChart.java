@@ -23,7 +23,6 @@
 package ta4jexamples.analysis;
 
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -31,8 +30,6 @@ import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.data.xy.OHLCDataset;
-import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Order;
 import org.ta4j.core.Strategy;
 import org.ta4j.core.TimeSeries;
@@ -41,6 +38,7 @@ import org.ta4j.core.indicators.TrendChannelsCollection;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
+import ta4jexamples.strategies.CoppockStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
 import ta4jexamples.strategies.RSI2Strategy;
 
@@ -77,12 +75,13 @@ public class BuyAndSellSignalsToCandlestickChart {
 
     private static void plotSymbol(String url, String title) {
         // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadSymbolSeriesFromURL(url);
+        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
 
         //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
 
         // Building the trading strategy
         Strategy movingMomentumStrategy = MovingMomentumStrategy.buildStrategy(series); // this one is very safe
+        Strategy coppockStrategy = CoppockStrategy.buildStrategy(series);
         Strategy rsiStrategy = RSI2Strategy.buildStrategy(series);
         Strategy cciStrategy = CCICorrectionStrategy.buildStrategy(series); // this one is risky
 
@@ -131,7 +130,8 @@ public class BuyAndSellSignalsToCandlestickChart {
         Map<Strategy, Order.OrderType> strategies = new HashMap<>();
         //strategies.put(vixStrategy, Order.OrderType.SELL);
         //strategies.put(rsiStrategy, Order.OrderType.BUY);
-        strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
+        //strategies.put(movingMomentumStrategy, Order.OrderType.BUY);
+        strategies.put(coppockStrategy, Order.OrderType.BUY);
         //strategies.put(cciStrategy, Order.OrderType.SELL);
 
         ChartBuilder.addBuySellSignals(series, plot, strategies);

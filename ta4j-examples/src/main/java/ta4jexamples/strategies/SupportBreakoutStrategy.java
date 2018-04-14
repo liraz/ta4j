@@ -25,7 +25,6 @@ package ta4jexamples.strategies;
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
-import org.ta4j.core.indicators.CCIIndicator;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.OpenPriceIndicator;
@@ -43,21 +42,23 @@ import java.util.List;
  * @see <a href="https://tradingstrategyguides.com/best-breakout-trading-strategy/">
  *     https://tradingstrategyguides.com/best-breakout-trading-strategy/</a>
  */
-public class ResistanceBreakoutStrategy {
+public class SupportBreakoutStrategy {
 
     /**
      * @param series a time series
-     * @param resistanceLevel a strong resistance level that might be broken
+     * @param supportLevel a strong support level that might be broken
      *
-     * @return a Resistance Breakout Strategy
+     * @return a Support Breakout Strategy
      */
-    public static Strategy buildStrategy(TimeSeries series, PointScore resistanceLevel) {
+    public static Strategy buildStrategy(TimeSeries series, PointScore supportLevel) {
         if (series == null) {
             throw new IllegalArgumentException("Series cannot be null");
         }
 
-        VWAPIndicator vwap = new VWAPIndicator(series, 14);
-        MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
+        //VWAPIndicator vwap = new VWAPIndicator(series, 14);
+        //MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
+        VWAPIndicator vwap = new VWAPIndicator(series, 28);
+        MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 24);
 
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
         OpenPriceIndicator openPrice = new OpenPriceIndicator(series);
@@ -65,17 +66,17 @@ public class ResistanceBreakoutStrategy {
         SMAIndicator sma = new SMAIndicator(closePrice, 12);
 
         Rule entryRule =
-                // candle was open below resistance level
-                new UnderIndicatorRule(openPrice, Decimal.valueOf(resistanceLevel.getPrice()))
-                // closed above the resistance level
-                .and(new OverIndicatorRule(closePrice, Decimal.valueOf(resistanceLevel.getPrice())))
-                // MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
-                .and(new IsRisingRule(mvwap, 20, 0.9)
-                // also SMA should indicate an upward movement (short term)
-                .and(new IsRisingRule(sma, 2, 0.9)));
+                // candle was open above support level
+                new OverIndicatorRule(openPrice, Decimal.valueOf(supportLevel.getPrice()))
+                // closed below the support level
+                .and(new UnderIndicatorRule(closePrice, Decimal.valueOf(supportLevel.getPrice())))
+                // MVWAP indicator value decreased exponentially when reaching the candle that broke the support
+                .and(new IsFallingRule(mvwap, 20, 0.9)
+                // also SMA should indicate an downward movement (short term)
+                .and(new IsFallingRule(sma, 2, 0.9)));
 
-        // go out of trade if a candle closed below the SMA
-        Rule exitRule = new UnderIndicatorRule(closePrice, sma)
+        // go out of trade if a candle closed above the SMA
+        Rule exitRule = new OverIndicatorRule(closePrice, mvwap)
                 // stop loss at the start of the candle, should be 0.1 percent.
                 .or(new StopLossRule(closePrice, Decimal.valueOf(0.1)))
                 // take the earnings after 0.4 percent rise, we don't need more than that.
@@ -95,12 +96,12 @@ public class ResistanceBreakoutStrategy {
         List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
                 60 / minutePerCandle);// 60 minutes (1hr candles)
 
-        List<PointScore> resistanceScores = CandleBarUtils.getResistanceScores(supportAndResistance);
+        List<PointScore> supportScores = CandleBarUtils.getSupportScores(supportAndResistance);
 
         // resistance breakout
-        for (PointScore resistanceLevel : resistanceScores) {
+        for (PointScore supportLevel : supportScores) {
             // Building the trading strategy
-            Strategy strategy = buildStrategy(series, resistanceLevel);
+            Strategy strategy = buildStrategy(series, supportLevel);
 
             // Running the strategy
             TimeSeriesManager seriesManager = new TimeSeriesManager(series);
