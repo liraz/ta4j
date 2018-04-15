@@ -35,8 +35,10 @@ import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
+import org.ta4j.core.api.yahoo.YahooSymbol;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
+import ta4jexamples.loaders.YahooBarsLoader;
 import ta4jexamples.strategies.VixStrategy;
 
 import java.awt.*;
@@ -69,19 +71,15 @@ public class VIXDivergenceToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
-                "?range=2d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";
 
-        plotSymbol(url, title);
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.SNP_500_FUTURES,
+                2, 5);
+        plotSymbol(series, YahooSymbol.SNP_500_FUTURES.getSymbol());
     }
 
-    private static void plotSymbol(String url, String title) {
-        // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
-        //TODO: Loading the VIX from yahoo
-        TimeSeries vixSeries = CsvBarsLoader.loadVIXSeries();
+    private static void plotSymbol(TimeSeries series, String title) {
+        TimeSeries vixSeries = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.VIX_INDEX,
+                2, 5);
 
         // Building the trading strategy
         Strategy vixStrategy = VixStrategy.buildStrategy(vixSeries, series);

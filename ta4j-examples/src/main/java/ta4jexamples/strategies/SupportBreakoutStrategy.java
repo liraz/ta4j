@@ -27,6 +27,7 @@ import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.helpers.MaxPriceIndicator;
 import org.ta4j.core.indicators.helpers.OpenPriceIndicator;
 import org.ta4j.core.indicators.volume.MVWAPIndicator;
 import org.ta4j.core.indicators.volume.VWAPIndicator;
@@ -55,13 +56,15 @@ public class SupportBreakoutStrategy {
             throw new IllegalArgumentException("Series cannot be null");
         }
 
-        //VWAPIndicator vwap = new VWAPIndicator(series, 14);
-        //MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
-        VWAPIndicator vwap = new VWAPIndicator(series, 28);
-        MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 24);
+        VWAPIndicator shortVwap = new VWAPIndicator(series, 14);
+        MVWAPIndicator shortMvwap = new MVWAPIndicator(shortVwap, 12);
+
+        VWAPIndicator longVwap = new VWAPIndicator(series, 28);
+        MVWAPIndicator longMvwap = new MVWAPIndicator(longVwap, 24);
 
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
         OpenPriceIndicator openPrice = new OpenPriceIndicator(series);
+        MaxPriceIndicator maxPrice = new MaxPriceIndicator(series);
 
         SMAIndicator sma = new SMAIndicator(closePrice, 12);
 
@@ -71,16 +74,16 @@ public class SupportBreakoutStrategy {
                 // closed below the support level
                 .and(new UnderIndicatorRule(closePrice, Decimal.valueOf(supportLevel.getPrice())))
                 // MVWAP indicator value decreased exponentially when reaching the candle that broke the support
-                .and(new IsFallingRule(mvwap, 20, 0.9)
+                .and(new IsFallingRule(longMvwap, 20, 0.9)
                 // also SMA should indicate an downward movement (short term)
                 .and(new IsFallingRule(sma, 2, 0.9)));
 
-        // go out of trade if a candle closed above the SMA
-        Rule exitRule = new OverIndicatorRule(closePrice, mvwap)
+        // go out of trade if a candle maxed above the SMA
+        Rule exitRule = new OverIndicatorRule(maxPrice, shortMvwap)
                 // stop loss at the start of the candle, should be 0.1 percent.
-                .or(new StopLossRule(closePrice, Decimal.valueOf(0.1)))
+                /*.or(new StopLossRule(closePrice, Decimal.valueOf(0.1)))
                 // take the earnings after 0.4 percent rise, we don't need more than that.
-                .or(new StopGainRule(closePrice, Decimal.valueOf(0.4)));
+                .or(new StopGainRule(closePrice, Decimal.valueOf(0.4)))*/;
 
         Strategy strategy = new BaseStrategy(entryRule, exitRule);
         strategy.setUnstablePeriod(5);

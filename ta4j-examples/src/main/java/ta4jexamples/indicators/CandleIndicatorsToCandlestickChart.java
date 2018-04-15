@@ -37,9 +37,11 @@ import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Decimal;
 import org.ta4j.core.Indicator;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.candles.*;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
+import ta4jexamples.loaders.YahooBarsLoader;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -79,18 +81,14 @@ public class CandleIndicatorsToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
-                "?range=3d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";
 
-        plotSymbol(url, title);
+        YahooSymbol symbol = YahooSymbol.BTC_USD;
+
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(symbol, 3, 5);
+        plotSymbol(series, symbol.getSymbol());
     }
 
-    private static void plotSymbol(String url, String title) {
-        // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
-
+    private static void plotSymbol(TimeSeries series, String title) {
         // adding indicators for candles (drawing rectangle over indicator)
         BearishEngulfingIndicator bearishEngulfingIndicator = new BearishEngulfingIndicator(series);
         BearishHaramiIndicator bearishHaramiIndicator = new BearishHaramiIndicator(series);

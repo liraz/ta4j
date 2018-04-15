@@ -33,10 +33,12 @@ import org.jfree.data.xy.OHLCDataset;
 import org.ta4j.core.Order;
 import org.ta4j.core.Strategy;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.TrendChannelsCollection;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
+import ta4jexamples.loaders.YahooBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.CoppockStrategy;
 import ta4jexamples.strategies.MovingMomentumStrategy;
@@ -60,23 +62,16 @@ public class BuyAndSellSignalsToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
-                "?range=3d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";
+        /*plotSymbol(YahooSymbol.BTC_USD.getSymbol(), YahooSymbol.BTC_USD,
+                3, 5);*/
 
-        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
-                "?range=2d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";*/
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.SNP_500_FUTURES,
+                2, 5);
 
-        plotSymbol(url, title);
+        plotSymbol(YahooSymbol.SNP_500_FUTURES.getSymbol(), series);
     }
 
-    private static void plotSymbol(String url, String title) {
-        // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
-
+    private static void plotSymbol(String title, TimeSeries series) {
         //TODO: 2. Add more strategies - http://stockcharts.com/school/doku.php?id=chart_school:trading_strategies
 
         // Building the trading strategy
@@ -113,7 +108,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
         plot.setRenderer(renderer);
 
-        addChannels(series, chart);
+        //addChannels(series, chart);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));

@@ -52,28 +52,24 @@ import ta4jexamples.loaders.YahooBarsLoader;
 import ta4jexamples.strategies.ResistanceBreakoutStrategy;
 import ta4jexamples.strategies.SupportBreakoutStrategy;
 
+import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//TODO: Implement the following strategy: https://www.quantopian.com/posts/swing-trading-algorithm
+//TODO: Implement the following strategy: https://tradingstrategyguides.com/best-bitcoin-trading-strategy/
+
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
  */
-public class SupportAndResistanceByScoreToCandlestickChart {
+public class BitcoinStrategyToCandlestickChart {
     private static int DAYS_RANGE = 4;
     private static int MINUTE_PER_CANDLE = 5;
 
-    private static YahooSymbol SYMBOL = YahooSymbol.SNP_500_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.SNP_500_INDEX;
-    //private static YahooSymbol SYMBOL = YahooSymbol.USD_JPY;
-    //private static YahooSymbol SYMBOL = YahooSymbol.USD_GBP;
-    //private static YahooSymbol SYMBOL = YahooSymbol.DOW_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.GOLD_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.SILVER_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.BTC_USD;
+    private static YahooSymbol FIRST_SYMBOL = YahooSymbol.BTC_USD;
+    private static YahooSymbol SECOND_SYMBOL = YahooSymbol.ETH_USD;
 
     private static void addSupportAndResistanceSignals(TimeSeries series, XYPlot plot) {
         //
@@ -85,7 +81,6 @@ public class SupportAndResistanceByScoreToCandlestickChart {
             ChartBuilder.drawSRLine(pointScore, plot);
         }
     }
-
 
     private static void addBreakoutSignals(TimeSeries series, XYPlot plot) {
         VWAPIndicator vwap = new VWAPIndicator(series, 14);
@@ -129,30 +124,48 @@ public class SupportAndResistanceByScoreToCandlestickChart {
 
     /**
      * Displays a chart in a frame.
-     * @param chart the chart to be displayed
      */
-    private static void displayChart(JFreeChart chart) {
+    private static void displayChart(JFreeChart firstChart, JFreeChart secondChart) {
         // Chart panel
-        ChartPanel panel = new ChartPanel(chart);
-        panel.setFillZoomRectangle(true);
-        panel.setMouseWheelEnabled(true);
-        panel.setPreferredSize(new Dimension(1136, 700));
+        ChartPanel panel1 = new ChartPanel(firstChart);
+        panel1.setFillZoomRectangle(true);
+        panel1.setMouseWheelEnabled(true);
+        panel1.setPreferredSize(new Dimension(1136, 400));
+        // Chart panel
+        ChartPanel panel2 = new ChartPanel(secondChart);
+        panel2.setFillZoomRectangle(true);
+        panel2.setMouseWheelEnabled(true);
+        panel2.setPreferredSize(new Dimension(1136, 400));
 
         // Application frame
-        ApplicationFrame frame = new ApplicationFrame("Prediction - support and resistance by score");
-        frame.setContentPane(panel);
+        ApplicationFrame frame = new ApplicationFrame("Bitcoin strategy");
+        frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+
+        frame.add(Box.createVerticalBox());
+        frame.add(panel1);
+        frame.add(panel2);
+
         frame.pack();
+
         RefineryUtilities.centerFrameOnScreen(frame);
         frame.setVisible(true);
     }
 
     public static void main(String[] args) {
 
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
-        plotSymbol(SYMBOL.getSymbol(), series);
+        TimeSeries series1 = YahooBarsLoader.loadYahooSymbolSeriesFromURL(FIRST_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
+        TimeSeries series2 = YahooBarsLoader.loadYahooSymbolSeriesFromURL(SECOND_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
+
+        JFreeChart jFreeChart1 = plotSymbol(series1, FIRST_SYMBOL.getSymbol());
+        JFreeChart jFreeChart2 = plotSymbol(series2, SECOND_SYMBOL.getSymbol());
+
+        /*
+          Displaying the charts
+         */
+        displayChart(jFreeChart1, jFreeChart2);
     }
 
-    private static void plotSymbol(String title, TimeSeries series) {
+    private static JFreeChart plotSymbol(TimeSeries series, String title) {
         /*
           Creating the OHLC dataset
          */
@@ -193,9 +206,6 @@ public class SupportAndResistanceByScoreToCandlestickChart {
 
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 
-        /*
-          Displaying the chart
-         */
-        displayChart(chart);
+        return chart;
     }
 }

@@ -15,8 +15,10 @@ import org.jfree.data.xy.OHLCDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
+import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.utils.CandleBarUtils;
 
 import java.awt.*;
 import java.util.Date;
@@ -191,5 +193,23 @@ public class ChartBuilder {
         chart.getXYPlot().addAnnotation(upperLine);
         chart.getXYPlot().addAnnotation(lowerLine);
         chart.getXYPlot().addAnnotation(mainLine);
+    }
+
+    /**
+     *
+     * @param pointScore
+     * @param plot
+     */
+    public static void drawSRLine(PointScore pointScore, XYPlot plot) {
+        Marker marker = new ValueMarker(pointScore.getPrice());
+        // draw the resistance
+        if(CandleBarUtils.isPointScoreResistance(pointScore)) {
+            marker.setPaint(Color.RED);
+        } else { // draw the support
+            marker.setPaint(Color.GREEN);
+        }
+        marker.setLabel("       " + pointScore.getScore().toString());
+        marker.setStroke(new BasicStroke(1));
+        plot.addRangeMarker(marker);
     }
 }

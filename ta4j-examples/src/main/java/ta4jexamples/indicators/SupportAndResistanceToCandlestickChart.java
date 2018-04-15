@@ -38,10 +38,12 @@ import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.Bar;
 import org.ta4j.core.TimeSeries;
+import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import ta4jexamples.chart.ChartBuilder;
 import ta4jexamples.loaders.CsvBarsLoader;
+import ta4jexamples.loaders.YahooBarsLoader;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -190,23 +192,14 @@ public class SupportAndResistanceToCandlestickChart {
     }
 
     public static void main(String[] args) {
-        /*String url = "https://query1.finance.yahoo.com/v7/finance/chart/BTC-USD" +
-                "?range=3d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "Bitcoin";*/
+        //YahooSymbol symbol = YahooSymbol.BTC_USD;
+        YahooSymbol symbol = YahooSymbol.SNP_500_FUTURES;
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(symbol, 2, 5);
 
-        String url = "https://query1.finance.yahoo.com/v7/finance/chart/ES=F" +
-                "?range=2d&interval=5m&indicators=quote" +
-                "&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
-        String title = "S&P500";
-
-        plotSymbol(url, title);
+        plotSymbol(series, symbol.getSymbol());
     }
 
-    private static void plotSymbol(String url, String title) {
-        // Getting the time series
-        TimeSeries series = CsvBarsLoader.loadYahooSymbolSeriesFromURL(url);
-
+    private static void plotSymbol(TimeSeries series, String title) {
         /*
           Creating the OHLC dataset
          */

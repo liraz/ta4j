@@ -28,6 +28,7 @@ import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
 import org.ta4j.core.indicators.CCIIndicator;
 import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.helpers.MinPriceIndicator;
 import org.ta4j.core.indicators.helpers.OpenPriceIndicator;
 import org.ta4j.core.indicators.volume.MVWAPIndicator;
 import org.ta4j.core.indicators.volume.VWAPIndicator;
@@ -59,10 +60,9 @@ public class ResistanceBreakoutStrategy {
         VWAPIndicator vwap = new VWAPIndicator(series, 14);
         MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
 
+        MinPriceIndicator minPrice = new MinPriceIndicator(series);
         ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
         OpenPriceIndicator openPrice = new OpenPriceIndicator(series);
-
-        SMAIndicator sma = new SMAIndicator(closePrice, 12);
 
         Rule entryRule =
                 // candle was open below resistance level
@@ -70,12 +70,16 @@ public class ResistanceBreakoutStrategy {
                 // closed above the resistance level
                 .and(new OverIndicatorRule(closePrice, Decimal.valueOf(resistanceLevel.getPrice())))
                 // MVWAP indicator value increased exponentially when reaching the candle that broke the resistance
-                .and(new IsRisingRule(mvwap, 20, 0.9)
-                // also SMA should indicate an upward movement (short term)
-                .and(new IsRisingRule(sma, 2, 0.9)));
+                .and(new IsRisingRule(mvwap, 20, 1))
+                //TODO: Figure out how can i check that the next two candles are also closed beyond resistance
+                //
+                /*.and(new WaitForSatisfiedRule(new OverIndicatorRule(closePrice, Decimal.valueOf(resistanceLevel.getPrice()))
+                        , 2))*/
+                /*.and(new CountRule(new OverIndicatorRule(closePrice, Decimal.valueOf(resistanceLevel.getPrice()))
+                        , 2))*/;
 
-        // go out of trade if a candle closed below the SMA
-        Rule exitRule = new UnderIndicatorRule(closePrice, sma)
+        // go out of trade if a candle closed below the MVWAP
+        Rule exitRule = new UnderIndicatorRule(minPrice, mvwap)
                 // stop loss at the start of the candle, should be 0.1 percent.
                 .or(new StopLossRule(closePrice, Decimal.valueOf(0.1)))
                 // take the earnings after 0.4 percent rise, we don't need more than that.
