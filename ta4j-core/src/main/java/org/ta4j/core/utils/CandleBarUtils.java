@@ -1,9 +1,6 @@
 package org.ta4j.core.utils;
 
-import org.ta4j.core.Bar;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.Decimal;
-import org.ta4j.core.TimeSeries;
+import org.ta4j.core.*;
 import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.analysis.PointScoreEvent;
 
@@ -30,6 +27,30 @@ public class CandleBarUtils {
 	private static double SCORE_FOR_TOUCH_HIGH_LOW = 1;
 	private static double SCORE_FOR_TOUCH_NORMAL = 2;
 
+	public static PointScore getStrongestResistance(TimeSeries series, int cumulativeCandleSize) {
+		List<PointScore> resistanceScores = getResistanceScores(getSupportAndResistanceByScore(series, cumulativeCandleSize));
+		PointScore strongestResistance = resistanceScores.size() > 0 ? resistanceScores.get(0) : null;
+
+		for (PointScore resistanceScore : resistanceScores) {
+			if(resistanceScore.getScore() > strongestResistance.getScore()) {
+				strongestResistance = resistanceScore;
+			}
+		}
+		return strongestResistance;
+	}
+
+	//TODO: FIGURE THIS SHIT OUT!!
+	public static List<PointScore> getSupportAndResistanceByScore(Indicator<Decimal> indicator, int cumulativeCandleSize) {
+		List<PointScore> supportAndResistance = new ArrayList<>();
+
+		// Combining small candles to get larger candles of required timeframe. (I have 1 minute candles and here creating 1 Hr candles)
+		List<Bar> cumulativeCandles = CandleBarUtils.getCumulativeCandles(indicator.getTimeSeries().getBarData(), cumulativeCandleSize);
+
+		Set<Double> impPoints = new HashSet<>();
+
+
+		return null;
+	}
 
 	public static List<PointScore> getSupportAndResistanceByScore(TimeSeries series, int cumulativeCandleSize) {
 		List<PointScore> supportAndResistance = new ArrayList<>();
@@ -232,7 +253,17 @@ public class CandleBarUtils {
 
 	public static Decimal getMax(List<Bar> cumulativeCandles) {
 		return cumulativeCandles.stream()
-				.max(Comparator.comparing(Bar::getMinPrice)).get().getMaxPrice();
+				.max(Comparator.comparing(Bar::getMaxPrice)).get().getMaxPrice();
+	}
+
+	public static Decimal getMax(Indicator<Decimal> indicator) {
+		Decimal maxValue = indicator.getValue(0);
+		for (int i = 0; i < indicator.getTimeSeries().getBarCount(); i++) {
+			if(indicator.getValue(i).doubleValue() > maxValue.doubleValue()) {
+				maxValue = indicator.getValue(i);
+			}
+		}
+		return maxValue;
 	}
 
 	public static boolean similar(Double key, List<Double> used) {

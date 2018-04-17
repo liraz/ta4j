@@ -1,12 +1,16 @@
 package ta4jexamples.chart;
 
+import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYLineAnnotation;
+import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
 import org.jfree.data.time.Minute;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -21,6 +25,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.utils.CandleBarUtils;
 
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -197,11 +202,48 @@ public class ChartBuilder {
 
     /**
      *
+     * @param series
+     * @param plot
+     * @param minutePerCandle
+     */
+    public static void drawSupportAndResistanceLines(TimeSeries series, XYPlot plot, int minutePerCandle) {
+        drawSupportAndResistanceLines(series, plot, minutePerCandle, 1);
+    }
+
+    /**
+     *
+     * @param series
+     * @param plot
+     * @param minutePerCandle
+     * @param priceScaleFactor
+     */
+    public static void drawSupportAndResistanceLines(TimeSeries series, XYPlot plot, int minutePerCandle, double priceScaleFactor) {
+        //
+        List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
+                60 / minutePerCandle);// 60 minutes (1hr candles)
+
+        for(PointScore pointScore : supportAndResistance){
+            // draw the SR line
+            ChartBuilder.drawSRLine(pointScore, plot, priceScaleFactor);
+        }
+    }
+
+    /**
+     *
      * @param pointScore
      * @param plot
      */
     public static void drawSRLine(PointScore pointScore, XYPlot plot) {
-        Marker marker = new ValueMarker(pointScore.getPrice());
+        drawSRLine(pointScore, plot, 1);
+    }
+
+    /**
+     *  @param pointScore
+     * @param plot
+     * @param priceScaleFactor
+     */
+    public static void drawSRLine(PointScore pointScore, XYPlot plot, double priceScaleFactor) {
+        Marker marker = new ValueMarker(pointScore.getPrice() * priceScaleFactor);
         // draw the resistance
         if(CandleBarUtils.isPointScoreResistance(pointScore)) {
             marker.setPaint(Color.RED);
@@ -211,5 +253,95 @@ public class ChartBuilder {
         marker.setLabel("       " + pointScore.getScore().toString());
         marker.setStroke(new BasicStroke(1));
         plot.addRangeMarker(marker);
+    }
+
+    /**
+     *
+     * @param series
+     * @param title
+     * @return
+     */
+    public static JFreeChart plotSymbol(TimeSeries series, String title) {
+        /*
+          Creating the OHLC dataset
+         */
+        OHLCDataset dataset = ChartBuilder.buildChartCandlestickDataset(series, title);
+
+        /*
+          Creating the chart
+         */
+        JFreeChart chart = ChartFactory.createCandlestickChart(
+                title, // title
+                "Date", // x-axis label
+                "Price", // y-axis label
+                dataset, // data
+                false // create legend?
+        );
+
+        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBorderPaint(Color.BLACK);
+
+        XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setDomainPannable(true);
+        plot.setBackgroundPaint(Color.decode("#CCC8C9"));
+
+        CandlestickRenderer renderer = new CandlestickRenderer();
+        renderer.setSeriesPaint(0, Color.BLACK);
+        renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_SMALLEST);
+        plot.setRenderer(renderer);
+
+        DateAxis axis = (DateAxis) plot.getDomainAxis();
+        axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
+
+        NumberAxis rangeAxis = new NumberAxis("Price");
+        rangeAxis.setAutoRangeIncludesZero(false);
+        plot.setRangeAxis(rangeAxis);
+
+        plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
+
+        return chart;
+    }
+
+    /**
+     *
+     * @param series
+     * @param indicator
+     * @param title
+     * @return
+     */
+    public static JFreeChart plotIndicator(TimeSeries series, Indicator<Decimal> indicator, String title) {
+        org.jfree.data.time.TimeSeries timeSeries = ChartBuilder.buildChartTimeSeries(series, indicator, title);
+
+        TimeSeriesCollection dataset = new TimeSeriesCollection();
+        dataset.addSeries(timeSeries);
+
+        /*
+          Creating the chart
+         */
+        JFreeChart chart = ChartFactory.createTimeSeriesChart(
+                title, // title
+                "Date", // x-axis label
+                "Price", // y-axis label
+                dataset, // data
+                false, false, false
+        );
+
+        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBorderPaint(Color.BLACK);
+
+        XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setDomainPannable(true);
+        plot.setBackgroundPaint(Color.decode("#CCC8C9"));
+
+        DateAxis axis = (DateAxis) plot.getDomainAxis();
+        axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));
+
+        NumberAxis rangeAxis = new NumberAxis("Price");
+        rangeAxis.setAutoRangeIncludesZero(false);
+        plot.setRangeAxis(rangeAxis);
+
+        plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
+
+        return chart;
     }
 }
