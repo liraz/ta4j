@@ -20,14 +20,13 @@
   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package ta4jexamples.indicators;
+package ta4jexamples.analysis;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
-import org.ta4j.core.Decimal;
 import org.ta4j.core.TimeSeries;
 import org.ta4j.core.analysis.PointScore;
 import org.ta4j.core.api.yahoo.YahooSymbol;
@@ -89,8 +88,8 @@ public class BitcoinStrategyToCandlestickChart {
 
     public static void main(String[] args) {
 
-        TimeSeries series1 = YahooBarsLoader.loadYahooSymbolSeriesFromURL(FIRST_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
-        TimeSeries series2 = YahooBarsLoader.loadYahooSymbolSeriesFromURL(SECOND_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
+        TimeSeries series1 = YahooBarsLoader.loadYahooSymbolSeries(FIRST_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
+        TimeSeries series2 = YahooBarsLoader.loadYahooSymbolSeries(SECOND_SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
 
         JFreeChart jFreeChart1 = ChartBuilder.plotSymbol(series1, FIRST_SYMBOL.getSymbol());
         JFreeChart jFreeChart2 = ChartBuilder.plotSymbol(series2, SECOND_SYMBOL.getSymbol());

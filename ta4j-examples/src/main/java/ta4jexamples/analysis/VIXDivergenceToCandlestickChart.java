@@ -37,7 +37,6 @@ import org.jfree.ui.RefineryUtilities;
 import org.ta4j.core.*;
 import org.ta4j.core.api.yahoo.YahooSymbol;
 import ta4jexamples.chart.ChartBuilder;
-import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.YahooBarsLoader;
 import ta4jexamples.strategies.VixStrategy;
 
@@ -72,13 +71,13 @@ public class VIXDivergenceToCandlestickChart {
 
     public static void main(String[] args) {
 
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.SNP_500_FUTURES,
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeries(YahooSymbol.SNP_500_FUTURES,
                 2, 5);
         plotSymbol(series, YahooSymbol.SNP_500_FUTURES.getSymbol());
     }
 
     private static void plotSymbol(TimeSeries series, String title) {
-        TimeSeries vixSeries = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.VIX_INDEX,
+        TimeSeries vixSeries = YahooBarsLoader.loadYahooSymbolSeries(YahooSymbol.VIX_INDEX,
                 2, 5);
 
         // Building the trading strategy

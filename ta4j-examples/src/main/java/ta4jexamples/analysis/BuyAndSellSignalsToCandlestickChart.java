@@ -37,7 +37,6 @@ import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.TrendChannelIndicator;
 import org.ta4j.core.indicators.TrendChannelsCollection;
 import ta4jexamples.chart.ChartBuilder;
-import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.YahooBarsLoader;
 import ta4jexamples.strategies.CCICorrectionStrategy;
 import ta4jexamples.strategies.CoppockStrategy;
@@ -65,7 +64,7 @@ public class BuyAndSellSignalsToCandlestickChart {
         /*plotSymbol(YahooSymbol.BTC_USD.getSymbol(), YahooSymbol.BTC_USD,
                 3, 5);*/
 
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.SNP_500_FUTURES,
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeries(YahooSymbol.SNP_500_FUTURES,
                 2, 5);
 
         plotSymbol(YahooSymbol.SNP_500_FUTURES.getSymbol(), series);

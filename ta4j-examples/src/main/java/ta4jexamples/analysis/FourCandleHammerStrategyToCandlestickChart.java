@@ -20,7 +20,7 @@
   IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package ta4jexamples.indicators;
+package ta4jexamples.analysis;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -55,73 +55,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//TODO: Implement the following strategy: https://www.quantopian.com/posts/swing-trading-algorithm
+//TODO: Implement the following strategy:
+//TODO:  https://tradingstrategyguides.com/technical-analysis-strategy/?utm_medium=email&_hsenc=p2ANqtz-_8FZjZhy897LC6TDHdtOP3JXULa5Qau_kagL92TBfNoxcMH3lgzHEEqGtTco-DLWYEc9hd5-1X0M0JcJVUexOQQZ7j6A&_hsmi=62165944&utm_content=62165944&utm_source=hs_email&hsCtaTracking=30da75e2-4e6b-4bf7-a32d-8a376fcb904e%7C1074dd3c-ca8a-4f6a-96bd-55c8f328ce4a
+
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
  */
-public class SupportAndResistanceByScoreToCandlestickChart {
-    private static int DAYS_RANGE = 4;
-    private static int MINUTE_PER_CANDLE = 5;
+public class FourCandleHammerStrategyToCandlestickChart {
+    private static int DAYS_RANGE = 20;
 
     private static YahooSymbol SYMBOL = YahooSymbol.SNP_500_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.SNP_500_INDEX;
-    //private static YahooSymbol SYMBOL = YahooSymbol.USD_JPY;
-    //private static YahooSymbol SYMBOL = YahooSymbol.USD_GBP;
-    //private static YahooSymbol SYMBOL = YahooSymbol.DOW_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.GOLD_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.SILVER_FUTURES;
-    //private static YahooSymbol SYMBOL = YahooSymbol.BTC_USD;
 
     private static void addSupportAndResistanceSignals(TimeSeries series, XYPlot plot) {
         //
         List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
-                60 / MINUTE_PER_CANDLE);// 60 minutes (1hr candles)
+                1);// 60 minutes (1hr candles)
 
         for(PointScore pointScore : supportAndResistance){
             // draw the SR line
             ChartBuilder.drawSRLine(pointScore, plot);
         }
-    }
-
-
-    private static void addBreakoutSignals(TimeSeries series, XYPlot plot) {
-        VWAPIndicator vwap = new VWAPIndicator(series, 14);
-        MVWAPIndicator mvwap = new MVWAPIndicator(vwap, 12);
-
-        ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-        SMAIndicator sma = new SMAIndicator(closePrice, 12);
-
-        // draw the indicators on chart (for testing the strategy)
-        TimeSeriesCollection dataset = new TimeSeriesCollection();
-        dataset.addSeries(ChartBuilder.buildChartTimeSeries(series, mvwap, "Moving volume weighted average"));
-        dataset.addSeries(ChartBuilder.buildChartTimeSeries(series, sma, "SMA"));
-
-        ChartBuilder.addAxis(plot, dataset, "", Color.blue);
-
-        List<PointScore> supportAndResistance = CandleBarUtils.getSupportAndResistanceByScore(series,
-                60 / MINUTE_PER_CANDLE);// 60 minutes (1hr candles)
-
-        List<PointScore> resistanceScores = CandleBarUtils.getResistanceScores(supportAndResistance);
-        List<PointScore> supportScores = CandleBarUtils.getSupportScores(supportAndResistance);
-
-        Map<Strategy, Order.OrderType> strategies = new HashMap<>();
-
-        // resistance breakout
-        for (PointScore resistanceLevel : resistanceScores) {
-            // Strategy 1 - a full resistance breakout upwards
-            strategies.put(ResistanceBreakoutStrategy.buildStrategy(series, resistanceLevel), Order.OrderType.BUY);
-
-            // Strategy 2 - a strong swing back from touching the ceiling of resistance level
-        }
-        // support breakout
-        for (PointScore supportLevel : supportScores) {
-            // Strategy 1 - a full resistance breakout upwards
-            strategies.put(SupportBreakoutStrategy.buildStrategy(series, supportLevel), Order.OrderType.SELL);
-
-            // Strategy 2 - a strong swing back from touching the floor of support level
-        }
-
-        ChartBuilder.addBuySellSignals(series, plot, strategies);
     }
 
     /**
@@ -145,7 +98,7 @@ public class SupportAndResistanceByScoreToCandlestickChart {
 
     public static void main(String[] args) {
 
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(SYMBOL, DAYS_RANGE, MINUTE_PER_CANDLE);
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesDaily(SYMBOL, DAYS_RANGE);
         plotSymbol(SYMBOL.getSymbol(), series);
     }
 
@@ -179,7 +132,6 @@ public class SupportAndResistanceByScoreToCandlestickChart {
         plot.setRenderer(renderer);
 
         addSupportAndResistanceSignals(series, plot);
-        addBreakoutSignals(series, plot);
 
         DateAxis axis = (DateAxis) plot.getDomainAxis();
         axis.setDateFormatOverride(new SimpleDateFormat("MM-dd HH:mm"));

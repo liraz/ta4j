@@ -42,7 +42,6 @@ import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import ta4jexamples.chart.ChartBuilder;
-import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.YahooBarsLoader;
 
 import java.awt.*;
@@ -54,8 +53,6 @@ import static org.ta4j.core.indicators.pivotpoints.PivotLevel.*;
 import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_2;
 import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_3;
 import static org.ta4j.core.indicators.pivotpoints.TimeLevel.BARBASED;
-import static org.ta4j.core.indicators.pivotpoints.TimeLevel.DAY;
-import static org.ta4j.core.indicators.pivotpoints.TimeLevel.MONTH;
 
 /**
  * This class builds a graphical chart showing the buy/sell signals of a strategy.
@@ -194,7 +191,7 @@ public class SupportAndResistanceToCandlestickChart {
     public static void main(String[] args) {
         //YahooSymbol symbol = YahooSymbol.BTC_USD;
         YahooSymbol symbol = YahooSymbol.SNP_500_FUTURES;
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(symbol, 2, 5);
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeries(symbol, 2, 5);
 
         plotSymbol(series, symbol.getSymbol());
     }

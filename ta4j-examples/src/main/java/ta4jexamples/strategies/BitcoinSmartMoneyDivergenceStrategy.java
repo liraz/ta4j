@@ -24,20 +24,11 @@ package ta4jexamples.strategies;
 
 import org.ta4j.core.*;
 import org.ta4j.core.analysis.PointScore;
-import org.ta4j.core.analysis.criteria.TotalProfitCriterion;
 import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.CoppockCurveIndicator;
-import org.ta4j.core.indicators.SMAIndicator;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.indicators.volume.MVWAPIndicator;
 import org.ta4j.core.indicators.volume.OnBalanceVolumeIndicator;
-import org.ta4j.core.indicators.volume.VWAPIndicator;
 import org.ta4j.core.trading.rules.*;
-import org.ta4j.core.utils.CandleBarUtils;
-import ta4jexamples.loaders.CsvTradesLoader;
 import ta4jexamples.loaders.YahooBarsLoader;
-
-import java.util.List;
 
 /**
  * Bitcoin Smart Money Divergence Strategy
@@ -92,9 +83,9 @@ public class BitcoinSmartMoneyDivergenceStrategy {
     public static void main(String[] args) {
 
         // Getting the time series
-        TimeSeries bitcoinSeries = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.BTC_USD,
+        TimeSeries bitcoinSeries = YahooBarsLoader.loadYahooSymbolSeries(YahooSymbol.BTC_USD,
                 2, 5);
-        TimeSeries ethereumSeries = YahooBarsLoader.loadYahooSymbolSeriesFromURL(YahooSymbol.ETH_USD,
+        TimeSeries ethereumSeries = YahooBarsLoader.loadYahooSymbolSeries(YahooSymbol.ETH_USD,
                 2, 5);
 
         //TODO:

@@ -40,7 +40,6 @@ import org.ta4j.core.TimeSeries;
 import org.ta4j.core.api.yahoo.YahooSymbol;
 import org.ta4j.core.indicators.candles.*;
 import ta4jexamples.chart.ChartBuilder;
-import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.YahooBarsLoader;
 
 import java.awt.*;
@@ -84,7 +83,7 @@ public class CandleIndicatorsToCandlestickChart {
 
         YahooSymbol symbol = YahooSymbol.BTC_USD;
 
-        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeriesFromURL(symbol, 3, 5);
+        TimeSeries series = YahooBarsLoader.loadYahooSymbolSeries(symbol, 3, 5);
         plotSymbol(series, symbol.getSymbol());
     }
 

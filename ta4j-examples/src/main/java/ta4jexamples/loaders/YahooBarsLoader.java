@@ -26,59 +26,71 @@ import java.util.logging.Logger;
 public class YahooBarsLoader {
 
 	//TODO: i should load less data from yahoo - keep previous data in CSV files
-	public static TimeSeries loadYahooSymbolSeriesFromURL(YahooSymbol symbol, int daysRange, int minutePerCandle) {
+	public static TimeSeries loadYahooSymbolSeries(YahooSymbol symbol, int daysRange, int minutePerCandle) {
 
 		String url = "https://query1.finance.yahoo.com/v7/finance/chart/" + symbol.getSymbol() +
 				"?range=" + daysRange + "d&interval=" + minutePerCandle + "m&indicators=quote" +
 				"&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
 
-		List<Bar> bars = new ArrayList<>();
-		ObjectMapper objectMapper = new ObjectMapper();
-
-		try {
-			InputStream stream = new URL(url).openStream();
-
-			YahooApiResponse response = objectMapper.readValue(stream, YahooApiResponse.class);
-			YahooChartResponse chart = response.getChart();
-
-			List<YahooChartResponseResult> result = chart.getResult();
-			if(result != null && result.size() > 0) {
-				YahooChartResponseResult yahooChartResponseResult = result.get(0);
-				List<Long> timestamps = yahooChartResponseResult.getTimestamp();
-				List<YahooIndicatorQuote> quotes = yahooChartResponseResult.getIndicators().getQuote();
-
-				if(quotes != null && quotes.size() > 0) {
-					YahooIndicatorQuote yahooIndicatorQuote = quotes.get(0);
-
-					List<Double> closes = yahooIndicatorQuote.getClose();
-					List<Double> highs = yahooIndicatorQuote.getHigh();
-					List<Double> lows = yahooIndicatorQuote.getLow();
-					List<Double> opens = yahooIndicatorQuote.getOpen();
-					List<Double> volumes = yahooIndicatorQuote.getVolume();
-
-					Double lastTradedPrice = CandleBarUtils.getLastTradedPrice(closes);
-
-					for (int i = 0; i < timestamps.size(); i++) {
-						Long timestamp = timestamps.get(i);
-
-						Double close = closes.get(i);
-						Double high = highs.get(i);
-						Double low = lows.get(i);
-						Double open = opens.get(i);
-						Double volume = volumes.get(i);
-
-						if (close != null && open != null) {
-							ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
-							bars.add(new BaseBar(dateTime, open, high, low, close, lastTradedPrice, volume));
-						}
-					}
-				}
-			}
-
-		} catch (IOException e) {
-			Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", e);
-		}
-
-		return new BaseTimeSeries("url_bars", bars);
+        return loadYahooSymbolSeriesFromUrl(url);
 	}
+	public static TimeSeries loadYahooSymbolSeriesDaily(YahooSymbol symbol, int daysRange) {
+
+		String url = "https://query1.finance.yahoo.com/v7/finance/chart/" + symbol.getSymbol() +
+				"?range=" + daysRange + "d&interval=1d&indicators=quote" +
+				"&includeTimestamps=true&includePrePost=true&corsDomain=finance.yahoo.com";
+
+        return loadYahooSymbolSeriesFromUrl(url);
+	}
+
+    private static TimeSeries loadYahooSymbolSeriesFromUrl(String url) {
+        List<Bar> bars = new ArrayList<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            InputStream stream = new URL(url).openStream();
+
+            YahooApiResponse response = objectMapper.readValue(stream, YahooApiResponse.class);
+            YahooChartResponse chart = response.getChart();
+
+            List<YahooChartResponseResult> result = chart.getResult();
+            if(result != null && result.size() > 0) {
+                YahooChartResponseResult yahooChartResponseResult = result.get(0);
+                List<Long> timestamps = yahooChartResponseResult.getTimestamp();
+                List<YahooIndicatorQuote> quotes = yahooChartResponseResult.getIndicators().getQuote();
+
+                if(quotes != null && quotes.size() > 0) {
+                    YahooIndicatorQuote yahooIndicatorQuote = quotes.get(0);
+
+                    List<Double> closes = yahooIndicatorQuote.getClose();
+                    List<Double> highs = yahooIndicatorQuote.getHigh();
+                    List<Double> lows = yahooIndicatorQuote.getLow();
+                    List<Double> opens = yahooIndicatorQuote.getOpen();
+                    List<Double> volumes = yahooIndicatorQuote.getVolume();
+
+                    Double lastTradedPrice = CandleBarUtils.getLastTradedPrice(closes);
+
+                    for (int i = 0; i < timestamps.size(); i++) {
+                        Long timestamp = timestamps.get(i);
+
+                        Double close = closes.get(i);
+                        Double high = highs.get(i);
+                        Double low = lows.get(i);
+                        Double open = opens.get(i);
+                        Double volume = volumes.get(i);
+
+                        if (close != null && open != null) {
+                            ZonedDateTime dateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault());
+                            bars.add(new BaseBar(dateTime, open, high, low, close, lastTradedPrice, volume));
+                        }
+                    }
+                }
+            }
+
+        } catch (IOException e) {
+            Logger.getLogger(CsvBarsLoader.class.getName()).log(Level.SEVERE, "Unable to load bars from CSV", e);
+        }
+
+        return new BaseTimeSeries("url_bars", bars);
+    }
 }
